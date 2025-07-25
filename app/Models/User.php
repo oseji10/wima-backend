@@ -27,8 +27,6 @@ class User extends Authenticatable implements JWTSubject
         'lastName',
         'otherNames',
         'password', 
-        'applicationType',
-        'jambId',
     ];
     protected $dates = ['deleted_at'];
     protected $hidden = ['password'];

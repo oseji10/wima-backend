@@ -11,10 +11,9 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('application_types', function (Blueprint $table) {
+        Schema::create('membership_types', function (Blueprint $table) {
             $table->id('typeId');
             $table->string('typeName')->nullable();
-            $table->string('amount')->nullable();
             
             $table->timestamps();
             $table->softDeletes();

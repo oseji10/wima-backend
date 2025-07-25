@@ -11,18 +11,18 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('jamb', function (Blueprint $table) {
-            $table->id();
-            $table->string('jambId')->unique();
-            $table->string('firstName')->nullable();
-            $table->string('lastName')->nullable();
-            $table->string('otherNames')->nullable();
-            $table->string('gender')->nullable();
-            $table->string('state')->nullable();
-            $table->string('aggregateScore')->nullable();
+         Schema::create('services', function (Blueprint $table) {
+            $table->id('serviceId');
+            $table->string('serviceName')->nullable();
+            $table->string('cost')->nullable();
+            $table->string('measuringUnit')->nullable();
+            $table->string('costPerUnit')->nullable();
+            
             
             $table->timestamps();
             $table->softDeletes();
+
+        
 
         });
     }

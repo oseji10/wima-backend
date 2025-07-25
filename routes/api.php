@@ -6,10 +6,10 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CancerController;
 use App\Http\Controllers\BeneficiariesController;
 use App\Http\Controllers\HospitalController;
+use App\Http\Controllers\StateController;
 use App\Http\Controllers\LgaController;
 use App\Http\Controllers\ProductsController;
 use App\Http\Controllers\RolesController;
-use App\Http\Controllers\StateController;
 use App\Http\Controllers\UsersController;
 use App\Http\Controllers\MinistryController;
 use App\Http\Controllers\CadreController;
@@ -18,7 +18,9 @@ use App\Http\Controllers\StockController;
 use App\Http\Controllers\ProductRequestController;
 use App\Http\Controllers\TransactionsController;
 use App\Http\Controllers\JAMBController;
-use App\Http\Controllers\ApplicationController;
+use App\Http\Controllers\HubsController;
+use App\Http\Controllers\MSPsController;
+
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -33,9 +35,9 @@ use App\Http\Controllers\ApplicationController;
 
 // Route::middleware(['cors'])->group(function () {
     // Public routes
-    Route::post('/users/register', [AuthController::class, 'candidateRegister']);
-    Route::post('/users/login', [AuthController::class, 'login']);
-    Route::post('/users/logout', [AuthController::class, 'logout']);
+    Route::post('/signup', [AuthController::class, 'signup2']);
+    Route::post('/signin', [AuthController::class, 'signin']);
+    Route::post('/logout', [AuthController::class, 'logout']);
     Route::post('/refresh', [AuthController::class, 'refresh']);
     Route::get('/users/profile', [AuthController::class, 'profile'])->middleware('auth.jwt'); // Use auth.jwt instead of auth:api
 
@@ -51,7 +53,7 @@ use App\Http\Controllers\ApplicationController;
                 'firstName' => $user->firstName,
                 'lastName' => $user->lastName,
                 'email' => $user->email,
-                'role' => $user->role,
+                'role' => $user->user_role->roleName,
                 'id' => $user->id,
                 'message' => 'User authenticated successfully',
             ]);
@@ -65,6 +67,18 @@ use App\Http\Controllers\ApplicationController;
     Route::post('/apply', [ApplicationController::class, 'apply']);
     Route::get('/applications', [ApplicationController::class, 'index']);
 
+    Route::get('/states', [StateController::class, 'index']);
+    Route::get('/lgas', [LgaController::class, 'getLgasByState']);
+    Route::get('/subhubs', [LgaController::class, 'getSubHubsByHubs']);
+    
+
+    Route::get('/hubs', [HubsController::class, 'index']);
+    Route::post('/hubs', [HubsController::class, 'store']);
+    Route::put('/hubs/{activeLocationId}', [HubsController::class, 'update']);
+    Route::delete('/hubs/{activeLocationId}', [HubsController::class, 'destroy']);
+
+    Route::get('/msps', [MSPsController::class, 'index']);
+    Route::post('/msps', [MSPsController::class, 'store']);
     });
         Route::get('analytics/total-users', [AnalyticsController::class, 'getTotalBeneficiaries']);
 

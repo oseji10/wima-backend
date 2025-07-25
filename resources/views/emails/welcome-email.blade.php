@@ -456,24 +456,7 @@
                   <tr>
                     <td class="content-cell">
                       <div class="f-fallback">
-<!-- 
-                        @if ($languageId == 1) 
-                          {{-- English --}}
-                          <h1>Hi, {{$firstName}}!</h1>
-                          <p>You recently registered on the NCHF Portal. Please see login details below:</p>
-                        @elseif ($languageId == 2)
-                          {{-- Yoruba --}}
-                          <h1>Bawo ni, {{$firstName}}!</h1>
-                          <p>O ṣẹṣẹ forukọsilẹ lori NCHF Portal. Jọwọ wo awọn alaye wiwọle rẹ ni isalẹ:</p>
-                        @elseif ($languageId == 3)
-                          {{-- Hausa --}}
-                          <h1>Sannu, {{$firstName}}!</h1>
-                          <p>Kwanan nan ka yi rijista a NCHF Portal. Da fatan a duba bayanan shiga a ƙasa:</p>
-                        @elseif ($languageId == 4)
-                          {{-- Igbo --}}
-                          <h1>Ndewo, {{$firstName}}!</h1>
-                          <p>Ị nọrọ na ndebanye aha na NCHF Portal. Biko lee nkọwa nbanye gị n'okpuru:</p>
-                        @endif -->
+
 
                          <h1>Hi, {{$firstName}}!</h1>
                         <p>Welcome to the FCT College of Nursing Sciences (FCTCONS) Portal.</p>
@@ -496,26 +479,7 @@
                             </td>
                           </tr>
                         </table>
-<!-- 
-                        @if ($languageId == 1) 
-                          <p>Kindly change your password as soon as possible.</p>
-                        @elseif ($languageId == 2)
-                          <p>Jọwọ yi ọrọ aṣina rẹ pada ni kete bi o ti ṣee.</p>
-                        @elseif ($languageId == 3)
-                          <p>Da fatan za a canza kalmar sirri da wuri-wuri.</p>
-                        @elseif ($languageId == 4)
-                          <p>Biko gbanwee okwuntughe gị ozugbo enwere ike.</p>
-                        @endif
-                        
-                        @if ($languageId == 1)
-                          <p>Thanks,<br>NCHF IT Team</p>
-                        @elseif ($languageId == 2)
-                          <p>O ṣeun,<br>Ẹgbẹ IT NCHF</p>
-                        @elseif ($languageId == 3)
-                          <p>Godiya daga,<br>NCHF IT Team</p>
-                        @elseif ($languageId == 4)
-                          <p>Daalụ,<br>NCHF IT Team</p>
-                        @endif -->
+
 
                       </div>
                     </td>

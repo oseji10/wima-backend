@@ -40,7 +40,7 @@ class WelcomeEmail extends Mailable implements ShouldQueue
     public function build()
     {
         return $this->view('emails.welcome-email')
-                    ->subject('Application Started - FCT College of Nursing Sciences')
+                    ->subject('Welcome to WIMA')
                     ->with([
                         'email' => $this->email,
                         'firstName' => $this->firstName,
@@ -48,10 +48,9 @@ class WelcomeEmail extends Mailable implements ShouldQueue
                         
                         'password' => $this->password,
                         // 'languageId' => $this->languageId,
-                        'action_url' => "https://fctson.abj.gov.ng",
-                        // 'login_url' => "https://nchf.resilience.ng/login",
+                        'action_url' => "https://wimanigeria.com",
                         
-                        'support_email' => "info@fctson.abj.gov.ng",
+                        'support_email' => "info@wimanigeria.com",
                     ]);
     }
 }

@@ -21,15 +21,11 @@ return new class extends Migration
             $table->string('password');
             $table->timestamp('email_verified_at')->nullable();
             $table->unsignedBigInteger('role')->nullable();
-            $table->unsignedBigInteger('applicationType')->nullable();
-            $table->string('jambId')->nullable();
             $table->rememberToken();
             $table->timestamps();
             $table->softDeletes();
 
             $table->foreign('role')->references('roleId')->on('roles')->onDelete('cascade');
-            $table->foreign('applicationType')->references('typeId')->on('application_types')->onDelete('cascade');
-            $table->foreign('jambId')->references('jambId')->on('jamb')->onDelete('cascade');
         });
     }
 

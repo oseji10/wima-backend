@@ -11,17 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('batches', function (Blueprint $table) {
-            $table->id('batchId');
-            $table->string('batchName')->nullable();
-            $table->string('examDate')->nullable();
-            $table->string('examTime')->nullable();
-            $table->string('capacity')->nullable();
-            $table->string('status')->default('inactive');
-            
+        Schema::create('states', function (Blueprint $table) {
+            $table->id('stateId');
+            $table->string('stateName')->nullable();
             
             $table->timestamps();
             $table->softDeletes();
+
         });
     }
 

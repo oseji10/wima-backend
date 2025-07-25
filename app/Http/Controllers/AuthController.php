@@ -45,7 +45,7 @@ class AuthController extends Controller
        
     }
 
-  public function login(Request $request)
+  public function signin(Request $request)
 {
     $request->validate([
         'username' => 'required',
@@ -97,7 +97,7 @@ class AuthController extends Controller
         'phoneNumber' => $user->phoneNumber ?? '',
         // 'role' => $user->role ? $user->role->roleName ?? '' : '', // Safe access
         'role' => $user->user_role->roleName ?? '',
-        'applicationType' => $user->application_type  ? $user->application_type->typeName ?? '' : null, // Safe access
+        // 'applicationType' => $user->application_type  ? $user->application_type->typeName ?? '' : null, // Safe access
         // 'lga' => $user->staff && $user->staff->lga ? $user->staff->lga_info->lgaName ?? '' : null, // Safe access
         'access_token' => $accessToken,
     ])
@@ -170,28 +170,25 @@ class AuthController extends Controller
 
 
 
-public function register(Request $request)
+public function signup(Request $request)
 {
-    // Set default password
-    $default_password = strtoupper(Str::random(2)) . mt_rand(1000000000, 9999999999);
-
-    // Create user
+        // Create user
     $user = User::create([
         'firstName' => $request->firstName,
         'lastName' => $request->lastName,
-        'phoneNumber' => $request->phoneNumber,
         'otherNames' => $request->otherNames,
+        'phoneNumber' => $request->phoneNumber,
         'email' => $request->email,
         'password' => Hash::make($request->password),
-        'role' => $request->role,
-        'jambId' => $request->jambId
+        'role' => 1,
+        // 'jambId' => $request->jambId
     ]);
 
     Log::info('User created:', ['email' => $user->email]);
 
     // Send email
     try {
-        Mail::to($user->email)->send(new WelcomeEmail($user->firstName, $user->lastName, $user->email, $default_password));
+        Mail::to($user->email)->send(new WelcomeEmail($user->firstName, $user->lastName, $user->email, $user->phoneNumber));
         Log::info('Email sent successfully to ' . $user->email);
     } catch (\Exception $e) {
         Log::error('Email sending failed: ' . $e->getMessage());
@@ -200,54 +197,33 @@ public function register(Request $request)
     // Return response
     return response()->json([
         'message' => "User successfully created",
-        'password' => $default_password,
+        // 'password' => $default_password,
     ]);
 }
 
-public function candidateRegister(Request $request)
+public function signup2(Request $request)
     {
         try {
             // Validate request data
             $validated = $request->validate([
                 'firstName' => 'required|string|max:255',
                 'lastName' => 'required|string|max:255',
-                'phoneNumber' => 'nullable|string|unique:users,phoneNumber|max:14|regex:/^\+?\d{10,15}$/',
                 'otherNames' => 'nullable|string|max:255',
+                'phoneNumber' => 'nullable|string|unique:users,phoneNumber|max:14|regex:/^\+?\d{10,15}$/',
                 'email' => 'required|email|unique:users,email|max:255',
-                'password' => 'required|string|min:6',
-                'applicationType' => 'required|string|exists:application_types,typeId',
-                'jambId' => 'nullable|string|unique:users,jambId|max:255',
+                'password' => 'required|string|min:6'
             ]);
 
-            // Generate applicationId based on applicationType
-            $prefix = match ($validated['applicationType']) {
-                "1" => 'NDN25',
-                "2" => 'BMW25',
-                "3" => 'PBN25',
-                default => throw new \Exception('Invalid application type'),
-            };
-            $randomDigits = str_pad(mt_rand(0, 9999999), 7, '0', STR_PAD_LEFT);
-            $applicationId = $prefix . $randomDigits;
-
+          
             // Create user
             $user = User::create([
-                'firstName' => $validated['firstName'],
-                'lastName' => $validated['lastName'],
+                 'firstName' => $request->firstName,
+        'lastName' => $request->lastName,
+        'otherNames' => $request->otherNames,
                 'phoneNumber' => $validated['phoneNumber'],
-                'otherNames' => $validated['otherNames'],
                 'email' => $validated['email'],
                 'password' => Hash::make($validated['password']),
-                'applicationType' => $validated['applicationType'],
-                'role' => 1, // Hardcoded role for candidate
-                'jambId' => $validated['jambId'],
-            ]);
-
-            // Create application
-            $application = Applications::create([
-                'userId' => $user->id,
-                'applicationId' => $applicationId,
-                'applicationType' => $validated['applicationType'],
-                'jambId' => $validated['jambId'],
+                'role' => 1, 
             ]);
 
             Log::info('User created:', ['email' => $user->email]);
@@ -269,7 +245,7 @@ public function candidateRegister(Request $request)
             return response()->json([
                 'status' => 'success',
                 'message' => 'Registration successful! Please check your email for a welcome message.',
-                'applicationId' => $applicationId,
+                // 'applicationId' => $applicationId,
             ], 201);
 
         } catch (ValidationException $e) {
