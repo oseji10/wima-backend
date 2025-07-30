@@ -9,7 +9,7 @@ class Subhubs extends Model
 {
     use HasFactory;
 
-    public $table = 'hubs';
+    public $table = 'subhubs';
     protected $fillable = [
         'subHubId',
         'hubId',

@@ -21,10 +21,13 @@ return new class extends Migration
             $table->string('gender')->nullable();
             $table->string('maritalStatus')->nullable();
             $table->string('ageBracket')->nullable();
+            $table->unsignedBigInteger('community')->nullable();
+            $table->string('msp')->nullable();
             $table->string('isDisabled')->nullable();
             $table->string('disabilityDescription')->nullable();
-            $table->string('status')->default('inactive');
-            
+            $table->string('status')->default('active');
+            $table->foreign('community')->references('subHubId')->on('subhubs')->onDelete('cascade');
+            $table->foreign('msp')->references('mspId')->on('msps')->onDelete('cascade');
             
             $table->timestamps();
             $table->softDeletes();

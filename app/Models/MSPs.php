@@ -19,7 +19,7 @@ class MSPs extends Model
         'address',
         'addedBy',
     ];
-    protected $primaryKey = 'mspId';
+    // protected $primaryKey = 'mspId';
     protected $hidden = [
         'created_at',
         'updated_at',

@@ -20,6 +20,9 @@ use App\Http\Controllers\TransactionsController;
 use App\Http\Controllers\JAMBController;
 use App\Http\Controllers\HubsController;
 use App\Http\Controllers\MSPsController;
+use App\Http\Controllers\FarmersController;
+use App\Http\Controllers\MembershipController;
+
 
 /*
 |--------------------------------------------------------------------------
@@ -44,7 +47,7 @@ use App\Http\Controllers\MSPsController;
     Route::post('/verify-jamb', [JAMBController::class, 'verifyJAMB']);
     Route::get('/jamb', [JAMBController::class, 'index']);
 
-
+Route::post('/membership-application', [MembershipController::class, 'store']);
     // Protected routes with JWT authentication
     Route::middleware(['auth.jwt'])->group(function () {
         Route::get('/user', function () {
@@ -76,6 +79,11 @@ use App\Http\Controllers\MSPsController;
     Route::post('/hubs', [HubsController::class, 'store']);
     Route::put('/hubs/{activeLocationId}', [HubsController::class, 'update']);
     Route::delete('/hubs/{activeLocationId}', [HubsController::class, 'destroy']);
+
+    Route::get('/farmers', [FarmersController::class, 'index']);
+    Route::post('/farmers', [FarmersController::class, 'store']);
+    Route::put('/farmers/{farmerId}', [FarmersController::class, 'update']);
+    Route::delete('/farmers/{farmerId}', [FarmersController::class, 'destroy']);
 
     Route::get('/msps', [MSPsController::class, 'index']);
     Route::post('/msps', [MSPsController::class, 'store']);
