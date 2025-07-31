@@ -9,6 +9,44 @@ use Illuminate\Support\Facades\Validator;
 
 class MembershipController extends Controller
 {
+          public function index(Request $request)
+{
+    $perPage = $request->query('per_page', 10);
+    $search = $request->query('search');
+    $state = $request->query('state');
+    $lga = $request->query('lga');
+
+     $query = Membership::orderBy('id', 'desc');
+    
+            // // if ($state) {
+            // //     $query->whereHas('subhubs.hub', function($q) use ($state) {
+            // //         $q->where('state', $state);
+            // //     });
+            // // }
+
+            // // if ($lga) {
+            // //     $query->whereHas('subhubs.hub', function($q) use ($lga) {
+            // //         $q->where('lga', $lga);
+            // //     });
+            // // }
+
+            // // if ($search) {
+            // //     $query->where(function($q) use ($search) {
+            // //         // $q->where('mspId', 'like', "%$search%")
+            // //         //   $q->whereHas('users', function($q) use ($search) {
+            // //               $q->where('farmerFirstName', 'like', "%$search%")
+            // //                 ->orWhere('farmerLastName', 'like', "%$search%")
+            // //                 ->orWhere('farmerOtherNames', 'like', "%$search%")
+            // //                 ->orWhere('phoneNumber', 'like', "%$search%"); // Added phone number search
+            // //         //   });
+            // //     });
+            // }
+
+    $membership_plans = $query->paginate($perPage);
+    
+    return response()->json($membership_plans);
+}
+
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [

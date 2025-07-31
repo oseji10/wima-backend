@@ -49,6 +49,8 @@ use App\Http\Controllers\MembershipController;
 
 Route::post('/membership-application', [MembershipController::class, 'store']);
     // Protected routes with JWT authentication
+    Route::get('/membership-application', [MembershipController::class, 'index']);
+
     Route::middleware(['auth.jwt'])->group(function () {
         Route::get('/user', function () {
             $user = auth()->user();

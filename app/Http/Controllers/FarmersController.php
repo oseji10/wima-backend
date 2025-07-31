@@ -17,28 +17,30 @@ class FarmersController extends Controller
 
      $query = Farmers::with('subhubs', 'msp')->orderBy('farmerId', 'desc');
     
-    //  if ($state) {
-    //     $query->where('state', $state);
-    // }
+    if ($state) {
+        $query->whereHas('subhubs.hub', function($q) use ($state) {
+            $q->where('state', $state);
+        });
+    }
 
-    // if ($lga) {
-    //     $query->where('lga', $lga);
-    // }
+    if ($lga) {
+        $query->whereHas('subhubs.hub', function($q) use ($lga) {
+            $q->where('lga', $lga);
+        });
+    }
 
-    //   if ($search) {
-    //     $query->where(function($q) use ($search) {
-    //         $q->where('applicationId', 'like', "%$search%")
-    //           ->orWhere('jambId', 'like', "%$search%");
-    //     })->orWhereHas('users', function($q) use ($search) {
-    //         $q->where('firstName', 'like', "%$search%")
-    //           ->orWhere('lastName', 'like', "%$search%")
-    //           ->orWhere('otherNames', 'like', "%$search%");
-    //     });
-    // }
+    if ($search) {
+        $query->where(function($q) use ($search) {
+            // $q->where('mspId', 'like', "%$search%")
+            //   $q->whereHas('users', function($q) use ($search) {
+                  $q->where('farmerFirstName', 'like', "%$search%")
+                    ->orWhere('farmerLastName', 'like', "%$search%")
+                    ->orWhere('farmerOtherNames', 'like', "%$search%")
+                    ->orWhere('phoneNumber', 'like', "%$search%"); // Added phone number search
+            //   });
+        });
+    }
 
-       
-
-    
     $farmers = $query->paginate($perPage);
     
     return response()->json($farmers);
