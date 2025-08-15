@@ -180,7 +180,7 @@ public function signup(Request $request)
         'phoneNumber' => $request->phoneNumber,
         'email' => $request->email,
         'password' => Hash::make($request->password),
-        'role' => 1,
+        'role' =>$request->role,
         // 'jambId' => $request->jambId
     ]);
 

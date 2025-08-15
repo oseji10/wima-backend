@@ -22,6 +22,9 @@ use App\Http\Controllers\HubsController;
 use App\Http\Controllers\MSPsController;
 use App\Http\Controllers\FarmersController;
 use App\Http\Controllers\MembershipController;
+use App\Http\Controllers\ServicesController;
+use App\Http\Controllers\CommodityController;
+
 
 
 /*
@@ -50,6 +53,7 @@ use App\Http\Controllers\MembershipController;
 Route::post('/membership-application', [MembershipController::class, 'store']);
     // Protected routes with JWT authentication
     Route::get('/membership-application', [MembershipController::class, 'index']);
+    Route::get('/roles', [RolesController::class, 'index']);
 
     Route::middleware(['auth.jwt'])->group(function () {
         Route::get('/user', function () {
@@ -65,12 +69,9 @@ Route::post('/membership-application', [MembershipController::class, 'store']);
         });
 
         // Application routes
-    Route::post('/jamb/upload', [JAMBController::class, 'upload']);
-    Route::delete('/jamb/{jambId}', [JAMBController::class, 'destroy']);
-    Route::get('/jamb/search', [JambController::class, 'search']);
-       
-    Route::post('/apply', [ApplicationController::class, 'apply']);
-    Route::get('/applications', [ApplicationController::class, 'index']);
+    Route::post('/roles', [RolesController::class, 'store']);
+    Route::put('/roles', [RolesController::class, 'update']);
+    Route::delete('/roles', [RolesController::class, 'destroy']);
 
     Route::get('/states', [StateController::class, 'index']);
     Route::get('/lgas', [LgaController::class, 'getLgasByState']);
@@ -89,6 +90,16 @@ Route::post('/membership-application', [MembershipController::class, 'store']);
 
     Route::get('/msps', [MSPsController::class, 'index']);
     Route::post('/msps', [MSPsController::class, 'store']);
+
+     Route::get('/services', [ServicesController::class, 'index']);
+    Route::post('/services', [ServicesController::class, 'store']);
+    Route::put('/services/{serviceId}', [ServicesController::class, 'update']);
+    Route::delete('/services/{serviceId}', [ServicesController::class, 'destroy']);
+
+     Route::get('/commodities', [CommodityController::class, 'index']);
+    Route::post('/commodities', [CommodityController::class, 'store']);
+    Route::put('/commodities/{commodityId}', [CommodityController::class, 'update']);
+    Route::delete('/commodities/{commodityId}', [CommodityController::class, 'destroy']);
     });
         Route::get('analytics/total-users', [AnalyticsController::class, 'getTotalBeneficiaries']);
 
