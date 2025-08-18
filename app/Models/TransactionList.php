@@ -5,20 +5,20 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class TransactionProducts extends Model
+class TransactionList extends Model
 {
     use HasFactory;
 
-    public $table = 'transaction_products';
+    public $table = 'transaction_list';
     protected $fillable = [
-        'transactionId',
-        'productId',
-        'soldBy',
-        'cost',
-        'quantitySold',
+        'transactionListId',
+        'transactionReference',
+        'serviceId',
+        'quantity',
+        'unitCost',
         
     ];
-    protected $primaryKey = 'id';
+    protected $primaryKey = 'transactionListId';
 
     public function products()
     {

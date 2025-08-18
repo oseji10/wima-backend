@@ -78,6 +78,7 @@ Route::post('/membership-application', [MembershipController::class, 'store']);
     Route::get('/subhubs', [LgaController::class, 'getSubHubsByHubs']);
     
 
+    Route::get('/hubs/active', [HubsController::class, 'activeHubs']);
     Route::get('/hubs', [HubsController::class, 'index']);
     Route::post('/hubs', [HubsController::class, 'store']);
     Route::put('/hubs/{activeLocationId}', [HubsController::class, 'update']);
@@ -100,6 +101,14 @@ Route::post('/membership-application', [MembershipController::class, 'store']);
     Route::post('/commodities', [CommodityController::class, 'store']);
     Route::put('/commodities/{commodityId}', [CommodityController::class, 'update']);
     Route::delete('/commodities/{commodityId}', [CommodityController::class, 'destroy']);
+
+    Route::get('/transactions', [TransactionsController::class, 'index']);
+    Route::get('/transactions/{transactionId}', [TransactionsController::class, 'show']);
+    Route::post('/transactions', [TransactionsController::class, 'initiate']);
+
+    Route::get('/farmers/search', [FarmersController::class, 'search']);
+    // Route::post('/services', [FarmersController::class, 'store']);
+    
     });
         Route::get('analytics/total-users', [AnalyticsController::class, 'getTotalBeneficiaries']);
 

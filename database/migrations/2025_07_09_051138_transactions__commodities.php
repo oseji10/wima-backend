@@ -11,19 +11,17 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('transaction_list', function (Blueprint $table) {
-            $table->id('transactionListId');
+        Schema::create('transaction_commodities', function (Blueprint $table) {
+            $table->id('transactionCommodityId');
             $table->string('transactionReference')->nullable();
-            $table->unsignedBigInteger('serviceId')->nullable();
-            $table->string('quantity')->nullable();
-            $table->string('unitCost')->nullable();
+            $table->unsignedBigInteger('commodityId')->nullable();
             
             
             $table->timestamps();
             $table->softDeletes();
 
             $table->foreign('transactionReference')->references('transactionReference')->on('transactions')->onDelete('cascade');
-            $table->foreign('serviceId')->references('serviceId')->on('services')->onDelete('cascade');
+            $table->foreign('commodityId')->references('commodityId')->on('commodities')->onDelete('cascade');
 
         });
     }

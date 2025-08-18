@@ -20,13 +20,43 @@ use Illuminate\Support\Facades\Auth;
 
 class TransactionsController extends Controller
 {
-    public function index()
-    {
-        $transactions = Transactions::with('transaction_products.products', 'beneficiary_info', 'seller')
-        ->orderBy('created_at', 'desc')
-        ->get();
-        return response()->json($transactions);
+    // public function index()
+    // {
+    //     $transactions = Transactions::with('transaction_list', 'transaction_commodity.commodities', 'farmer_info', 'msp_info.users', 'hub_info', 'active_states')
+    //     ->orderBy('created_at', 'desc')
+    //     ->get();
+    //     return response()->json($transactions);
+    // }
+
+
+    public function index(Request $request)
+{
+    $perPage = $request->query('per_page', 10);
+    $search = $request->query('search');
+    
+    $query = Transactions::with('transaction_list', 'transaction_commodity.commodities', 'farmer_info', 'msp_info.users', 'hub_info', 'active_states')->orderBy('transactionId', 'desc');
+      
+  
+    
+    // Search functionality
+    if ($search) {
+        $query->where(function($q) use ($search) {
+            $q->where('transactionReference', 'like', "%$search%")
+              ->orWhereHas('users', function($q) use ($search) {
+                  $q->where('firstName', 'like', "%$search%")
+                    ->orWhere('lastName', 'like', "%$search%")
+                    ->orWhere('otherNames', 'like', "%$search%")
+                    ->orWhere('phoneNumber', 'like', "%$search%"); // Added phone number search
+              });
+        });
     }
+    
+    $transactions = $query->paginate($perPage);
+
+    return response()->json($transactions);
+}
+    
+    
     public function show($transactionId)
     {
         $transaction = Transactions::find($transactionId);

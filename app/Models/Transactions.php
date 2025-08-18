@@ -12,39 +12,45 @@ class Transactions extends Model
     public $table = 'transactions';
     protected $fillable = [
         'transactionId',
-        'productId',
-        'soldBy',
+        'msp',
+        'farmer',
         'paymentMethod',
-        'cost',
-        'quantitySold',
-        'lga',
-        'beneficiary',
-        'status'
+        'transactionType',
+        'transactionReference',
+        'transactionStatus',
+        'totalCost',
+        'hub',
     ];
-    protected $primaryKey = 'id';
+    protected $primaryKey = 'transactionId';
 
-    public function products()
+    public function transaction_list()
     {
-        return $this->belongsTo(Products::class, 'productId', 'productId');
+        return $this->hasMany(TransactionList::class, 'transactionReference', 'transactionReference');
     } 
 
-    public function stock()
+    public function transaction_commodity()
     {
-        return $this->belongsTo(Stock::class, 'stockId', 'stockId');
+        return $this->hasMany(TransactionCommodity::class, 'transactionReference', 'transactionReference');
     } 
 
-    public function beneficiary_info()
+    public function msp_info()
     {
-        return $this->belongsTo(Beneficiary::class, 'beneficiary', 'beneficiaryId');
+        return $this->belongsTo(MSPs::class, 'msp', 'mspId');
     }
 
-    public function transaction_products()
+    public function farmer_info()
     {
-        return $this->hasMany(TransactionProducts::class, 'transactionId', 'transactionId');
+        return $this->belongsTo(Farmers::class, 'farmer', 'farmerId');
     }
 
-    public function seller()
+    public function hub_info()
     {
-        return $this->belongsTo(User::class, 'soldBy', 'id');
+        return $this->belongsTo(Hubs::class, 'hub', 'hubId');
     }
+
+    public function active_states()
+    {
+        return $this->belongsTo(ActiveStates::class, 'state', 'stateId');
+    }
+
 }

@@ -14,17 +14,21 @@ return new class extends Migration
         Schema::create('transactions', function (Blueprint $table) {
             $table->id('transactionId');
             $table->string('msp')->nullable();
+            $table->string('farmer')->nullable();
             $table->string('transactionType')->nullable();
             $table->string('totalCost')->nullable();
             $table->string('transactionStatus')->nullable();
-            $table->string('transactionReference')->nullable();
-            $table->unsignedBigInteger('lga')->nullable();
-            
+            $table->string('transactionReference')->unique();
+            $table->string('paymentMethod')->nullable();
+            $table->unsignedBigInteger('hub')->nullable();
+
+
             $table->timestamps();
             $table->softDeletes();
 
             $table->foreign('msp')->references('mspId')->on('msps')->onDelete('cascade');
-            $table->foreign('lga')->references('lgaId')->on('lgas')->onDelete('cascade');
+            $table->foreign('hub')->references('hubId')->on('hubs')->onDelete('cascade');
+            $table->foreign('farmer')->references('farmerId')->on('farmers')->onDelete('cascade');
         });
     }
 

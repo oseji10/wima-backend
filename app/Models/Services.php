@@ -10,7 +10,7 @@ class Services extends Model
     protected $primaryKey = 'serviceId';
     protected $fillable = [
         'serviceName',
-        'measurementUnit',
+        'measuringUnit',
         'costPerUnit',
         'cost',
         'addedBy',

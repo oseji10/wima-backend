@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\Hubs;
 use App\Models\Lgas;
 use App\Models\Subhubs;
+use App\Models\ActiveStates;
 class HubsController extends Controller
 {
       public function index(Request $request)
@@ -43,12 +44,12 @@ class HubsController extends Controller
     
     return response()->json($hubs);
 }
-    // public function index()
-    // {
-    //     $hubs = Hubs::with('states', 'lgas')->get();
-    //     return response()->json($hubs);
+    public function activeHubs()
+    {
+        $hubs = ActiveStates::with('state_info')->get();
+        return response()->json($hubs);
        
-    // }
+    }
 
      public function getLgasByState(Request $request)
     {

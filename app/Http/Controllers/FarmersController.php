@@ -15,7 +15,7 @@ class FarmersController extends Controller
     $state = $request->query('state');
     $lga = $request->query('lga');
 
-     $query = Farmers::with('subhubs', 'msp')->orderBy('farmerId', 'desc');
+     $query = Farmers::with('subhubs', 'msp')->orderBy('id', 'desc');
     
     if ($state) {
         $query->whereHas('subhubs.hub', function($q) use ($state) {
@@ -36,6 +36,7 @@ class FarmersController extends Controller
                   $q->where('farmerFirstName', 'like', "%$search%")
                     ->orWhere('farmerLastName', 'like', "%$search%")
                     ->orWhere('farmerOtherNames', 'like', "%$search%")
+                    ->orWhereRaw("CONCAT(farmerFirstName, ' ', farmerLastName , ' ', farmerOtherNames) LIKE ?", ["%{$search}%"])
                     ->orWhere('phoneNumber', 'like', "%$search%"); // Added phone number search
             //   });
         });
@@ -137,6 +138,15 @@ class FarmersController extends Controller
 
         $hub->delete();
         return response()->json(['message' => 'Hub deleted successfully'], 200);
+    }
+
+    public function search(Request $request){
+        $search = $request->query('search');
+        $search_result = Farmers::where('farmerFirstName', 'like', "%$search%")
+        ->orWhere('farmerLastName', 'like', "%$search%")
+        ->orWhere('farmerId', 'like', "%$search%")
+        ->get();
+        return response()->json($search_result);
     }
     
 }

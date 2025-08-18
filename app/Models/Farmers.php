@@ -25,7 +25,7 @@ class Farmers extends Model
         'status',
         'community',
     ];
-    protected $primaryKey = 'farmerId';
+    protected $primaryKey = 'id';
     protected $hidden = [
         'created_at',
         'updated_at',
