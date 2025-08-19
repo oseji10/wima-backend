@@ -55,6 +55,49 @@ class TransactionsController extends Controller
 
     return response()->json($transactions);
 }
+
+
+   public function analytics(Request $request)
+{
+    // return  $data = Transactions::with(['farmer_info', 'msp_info', 'hub_info.states', 'hub_info.lgas', 'transaction_list.services'])->get();
+$data = Transactions::with([
+        'farmer_info',
+        'msp_info',
+        'hub_info.states',
+        'hub_info.lgas',
+        'transaction_list.services'
+    ])
+    ->get()
+    ->groupBy(function ($transaction) {
+        // Group by month-year
+        return Carbon::parse($transaction->created_at)->format('M-y');
+    })
+    ->flatMap(function ($transactions, $monthYear) {
+        return $transactions->groupBy(function ($t) {
+            return $t->hub_info->states->stateName . '-' . $t->hub_info->lgas->lgaName . '-' . $t->transaction_list->services->serviceName;
+        })->map(function ($group, $key) use ($monthYear) {
+
+            $maleCount = $group->where('farmer_info.gender', 'Male')->count();
+            $femaleCount = $group->where('farmer_info.gender', 'Female')->count();
+
+            $amount = $group->sum('totalCost');
+
+            [$state, $lga, $activity] = explode('-', $key);
+
+            return [
+                "MonthYear" => $monthYear,
+                "State"     => $state,
+                "LGA"       => $lga,
+                "Activity"  => $activity,
+                "Male"      => $maleCount,
+                "Female"    => $femaleCount,
+                "Amount"    => $amount, // keep numeric for charts
+            ];
+        });
+    })
+    ->values();        return response()->json($data);
+    
+}
     
     
     public function show($transactionId)

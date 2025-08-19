@@ -27,7 +27,13 @@ class CommodityController extends Controller
     return response()->json($commodity);
 }  
 
-  
+
+public function allcommodities(Request $request)
+{
+     $query = Commodity::orderBy('commodityId', 'desc');
+    $commodities = $query->get();
+    return response()->json($commodities);
+}
 
     public function store(Request $request)
     {

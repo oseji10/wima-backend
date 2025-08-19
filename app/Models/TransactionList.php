@@ -20,13 +20,10 @@ class TransactionList extends Model
     ];
     protected $primaryKey = 'transactionListId';
 
-    public function products()
+    public function services()
     {
-        return $this->belongsTo(Products::class, 'productId', 'productId');
+        return $this->belongsTo(Services::class, 'serviceId', 'serviceId');
     } 
 
-    public function stock()
-    {
-        return $this->belongsTo(Stock::class, 'stockId', 'stockId');
-    } 
+  
 }

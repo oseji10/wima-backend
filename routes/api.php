@@ -47,8 +47,9 @@ use App\Http\Controllers\CommodityController;
     Route::post('/refresh', [AuthController::class, 'refresh']);
     Route::get('/users/profile', [AuthController::class, 'profile'])->middleware('auth.jwt'); // Use auth.jwt instead of auth:api
 
-    Route::post('/verify-jamb', [JAMBController::class, 'verifyJAMB']);
-    Route::get('/jamb', [JAMBController::class, 'index']);
+    Route::get('/transactions/analytics', [TransactionsController::class, 'analytics']);
+    Route::get('/commodities', [CommodityController::class, 'allcommodities']);
+    Route::get('/hubs/all-active-hubs', [HubsController::class, 'allActiveHubs']);
 
 Route::post('/membership-application', [MembershipController::class, 'store']);
     // Protected routes with JWT authentication
@@ -111,7 +112,7 @@ Route::post('/membership-application', [MembershipController::class, 'store']);
     
     });
         Route::get('analytics/total-users', [AnalyticsController::class, 'getTotalBeneficiaries']);
-
-    Route::options('{any}', function () {
-    return response()->json([], 200);
-})->where('any', '.*');
+        Route::options('{any}', function () {
+            return response()->json([], 200);
+        })->where('any', '.*');
+       

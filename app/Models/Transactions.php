@@ -25,12 +25,17 @@ class Transactions extends Model
 
     public function transaction_list()
     {
-        return $this->hasMany(TransactionList::class, 'transactionReference', 'transactionReference');
+        return $this->belongsTo(TransactionList::class, 'transactionReference', 'transactionReference');
     } 
 
     public function transaction_commodity()
     {
         return $this->hasMany(TransactionCommodity::class, 'transactionReference', 'transactionReference');
+    } 
+
+     public function transaction_services()
+    {
+        return $this->belongsTo(TransactionList::class, 'transactionReference', 'transactionReference');
     } 
 
     public function msp_info()

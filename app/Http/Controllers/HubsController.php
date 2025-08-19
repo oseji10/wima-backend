@@ -9,7 +9,14 @@ use App\Models\Subhubs;
 use App\Models\ActiveStates;
 class HubsController extends Controller
 {
-      public function index(Request $request)
+
+  public function allActiveHubs()
+{
+    $hubs = Hubs::with('state_info')->get();
+    return response()->json($hubs);
+}
+
+    public function index(Request $request)
 {
     $perPage = $request->query('per_page', 10);
     $search = $request->query('search');
