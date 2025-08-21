@@ -41,4 +41,9 @@ class Hubs extends Model
     {
         return $this->belongsTo(User::class, 'addedBy', 'id');
     } 
+
+    public function subhub()
+    {
+        return $this->belongsTo(Subhubs::class, 'hubId', 'hubId');
+    } 
 }

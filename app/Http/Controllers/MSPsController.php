@@ -14,7 +14,7 @@ public function index(Request $request)
     $state = $request->query('state');
     $lga = $request->query('lga'); // Added LGA filter
     
-    $query = MSPs::with(['users', 'hub'])->orderBy('id', 'desc');
+    $query = MSPs::with(['users', 'hub.lgas'])->orderBy('id', 'desc');
       
     // Filter by state
     if ($state) {
@@ -38,7 +38,8 @@ public function index(Request $request)
                   $q->where('firstName', 'like', "%$search%")
                     ->orWhere('lastName', 'like', "%$search%")
                     ->orWhere('otherNames', 'like', "%$search%")
-                    ->orWhere('phoneNumber', 'like', "%$search%"); // Added phone number search
+                    ->orWhere('phoneNumber', 'like', "%$search%")
+                     ->orWhereRaw("CONCAT(firstName, ' ', lastName , ' ', otherNames) LIKE ?", ["%{$search}%"]);
               });
         });
     }

@@ -17,6 +17,7 @@ return new class extends Migration
             $table->unsignedBigInteger('hub')->nullable();
             $table->string('address')->nullable();
             $table->string('alternatePhoneNumber')->nullable();
+            $table->string('gender')->nullable();
             $table->unsignedBigInteger('userId')->nullable();
             $table->unsignedBigInteger('addedBy')->nullable();
             $table->string('status')->default('active');

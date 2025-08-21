@@ -16,6 +16,7 @@ class MSPs extends Model
         'lastName',
         'otherNames',
         'hub',
+        'gender',
         'address',
         'addedBy',
     ];

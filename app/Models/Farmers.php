@@ -23,7 +23,7 @@ class Farmers extends Model
         'isDisabled',
         'disabilityDescription',
         'status',
-        'community',
+        'hub',
     ];
     protected $primaryKey = 'id';
     protected $hidden = [
@@ -40,10 +40,12 @@ class Farmers extends Model
         return $this->belongsTo(MSPs::class, 'msp', 'mspId');
     } 
 
-     public function subhubs()
+     public function hubs()
     {
-        return $this->belongsTo(Subhubs::class, 'community', 'subHubId');
+        return $this->belongsTo(Hubs::class, 'hub', 'hubId');
     } 
+
+    
 
     //   public function users()
     // {

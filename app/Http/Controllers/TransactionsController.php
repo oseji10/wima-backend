@@ -8,7 +8,7 @@ use App\Models\Beneficiary;
 use App\Models\TransactionProducts;
 use App\Models\PendingTransactions;
 use App\Models\Products;
-use App\Models\Stock;
+use App\Models\TransactionList;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -57,47 +57,148 @@ class TransactionsController extends Controller
 }
 
 
-   public function analytics(Request $request)
+public function analytics(Request $request)
 {
-    // return  $data = Transactions::with(['farmer_info', 'msp_info', 'hub_info.states', 'hub_info.lgas', 'transaction_list.services'])->get();
-$data = Transactions::with([
-        'farmer_info',
-        'msp_info',
-        'hub_info.states',
-        'hub_info.lgas',
-        'transaction_list.services'
-    ])
-    ->get()
-    ->groupBy(function ($transaction) {
-        // Group by month-year
-        return Carbon::parse($transaction->created_at)->format('M-y');
-    })
-    ->flatMap(function ($transactions, $monthYear) {
-        return $transactions->groupBy(function ($t) {
-            return $t->hub_info->states->stateName . '-' . $t->hub_info->lgas->lgaName . '-' . $t->transaction_list->services->serviceName;
-        })->map(function ($group, $key) use ($monthYear) {
-
-            $maleCount = $group->where('farmer_info.gender', 'Male')->count();
-            $femaleCount = $group->where('farmer_info.gender', 'Female')->count();
-
-            $amount = $group->sum('totalCost');
-
-            [$state, $lga, $activity] = explode('-', $key);
-
+//    return $data2 = TransactionList::select('transaction_list.transactionReference', 'services.serviceName as service', 'services.measuringUnit as measure', 'transaction_list.quantity', 'transaction_list.unitCost as cost', \DB::raw("SUM(transaction_list.unitCost*transaction_list.quantity) as totalCost"), 'transaction_list.created_at')
+//    ->join('services', 'transaction_list.serviceId', '=', 'services.serviceId')
+//     ->groupBy('transaction_list.transactionReference', 'services.serviceName', 'services.measuringUnit', 'transaction_list.quantity', 'transaction_list.unitCost', 'transaction_list.created_at')
+//    ->get();
+    $data = Transactions::select(
+            'states.stateName as state',
+            'lgas.lgaName as lga',
+            'transactions.created_at',
+            'services.serviceName as service',
+            \DB::raw("COUNT(CASE WHEN farmers.gender = 'Female' or farmers.gender = 'female' THEN 1 END) as FemaleCount"),
+            \DB::raw("COUNT(CASE WHEN farmers.gender = 'Male' or farmers.gender = 'male' THEN 1 END) as MaleCount"),
+            \DB::raw("SUM(totalCost) as totalCost")
+        )
+        ->join('hubs', 'transactions.hub', '=', 'hubs.hubId')
+        ->join('states', 'hubs.state', '=', 'states.stateId') // join to states table
+        ->join('lgas', 'hubs.lga', '=', 'lgas.lgaId') // join to lgas table
+        ->join('transaction_list', 'transactions.transactionReference', '=', 'transaction_list.transactionReference')
+        ->join('services', 'transaction_list.serviceId', '=', 'services.serviceId') // join to services table
+        ->join('farmers', 'transactions.farmer', '=', 'farmers.farmerId') // join to farmers table
+        ->groupBy('states.stateName', 'lgas.lgaName', 'transactions.created_at', 'services.serviceName', 'farmers.gender')
+        ->get()
+        ->map(function($transaction) {
             return [
-                "MonthYear" => $monthYear,
-                "State"     => $state,
-                "LGA"       => $lga,
-                "Activity"  => $activity,
-                "Male"      => $maleCount,
-                "Female"    => $femaleCount,
-                "Amount"    => $amount, // keep numeric for charts
+                'MonthYear' => $transaction->created_at->format('M-y'),
+                'State'     => $transaction->state,  // now you get the name, not just ID
+                'LGA'       => $transaction->lga,
+                'Activity'  => $transaction->service,
+                'Male'      => $transaction->MaleCount,
+                'Female'    => $transaction->FemaleCount,
+                'Amount'    => $transaction->totalCost,
             ];
         });
-    })
-    ->values();        return response()->json($data);
-    
+
+    return response()->json($data);
+
+    // $data = Transactions::with([
+    //     'farmer_info',
+    //     'msp_info',
+    //     'hub_info.states',
+    //     'hub_info.lgas',
+    //     'transaction_list.services'
+    // ])
+    // // ->whereYear('created_at', 2025) // Optional: Filter by year for debugging
+    // ->get();
+
+    // $data = Transactions::with([
+    //     'farmer_info',
+    //     'msp_info',
+    //     'hub_info.states',
+    //     'hub_info.lgas',
+    //     'transaction_list.services'
+    // ])
+    // // ->whereYear('created_at', 2025) // Optional: Filter by year for debugging
+    // ->get();
+
+    // \Log::info('Total transactions fetched: ' . $data->count());
+
+    // $result = $data
+    //     ->groupBy(function ($transaction) {
+    //         return Carbon::parse($transaction->created_at)->format('M-y');
+    //     })
+    //     ->flatMap(function ($transactions, $monthYear) {
+    //         return $transactions->groupBy(function ($t) {
+    //             $state = optional(optional($t->hub_info)->states)->stateName ?? 'Unknown';
+    //             $lga = optional(optional($t->hub_info)->lgas)->lgaName ?? 'Unknown';
+    //             $service = optional(optional($t->transaction_list)->services)->serviceName ?? 'Unknown';
+    //             $key = $state . '-' . $lga . '-' . $service;
+    //             \Log::info('Grouping key: ' . $key);
+    //             return $key;
+    //         })->map(function ($group, $key) use ($monthYear) {
+    //             $maleCount = $group->filter(function ($t) {
+    //                 return optional($t->farmer_info)->gender === 'Male';
+    //             })->count();
+    //             $femaleCount = $group->filter(function ($t) {
+    //                 return optional($t->farmer_info)->gender === 'Female';
+    //             })->count();
+
+    //             $amount = $group->sum('totalCost');
+
+    //             [$state, $lga, $activity] = explode('-', $key);
+
+    //             return [
+    //                 "MonthYear" => $monthYear,
+    //                 "State"     => $state,
+    //                 "LGA"       => $lga,
+    //                 "Activity"  => $activity,
+    //                 "Male"      => $maleCount,
+    //                 "Female"    => $femaleCount,
+    //                 "Amount"    => $amount,
+    //             ];
+    //         });
+    //     })
+    //     ->values();
+
+    // \Log::info('Final result count: ' . $result->count());
+    // return response()->json($result);
 }
+
+
+//    public function analytics(Request $request)
+// {
+//     // return  $data = Transactions::with(['farmer_info', 'msp_info', 'hub_info.states', 'hub_info.lgas', 'transaction_list.services'])->get();
+// $data = Transactions::with([
+//         'farmer_info',
+//         'msp_info',
+//         'hub_info.states',
+//         'hub_info.lgas',
+//         'transaction_list.services'
+//     ])
+//     ->get()
+//     ->groupBy(function ($transaction) {
+//         // Group by month-year
+//         return Carbon::parse($transaction->created_at)->format('M-y');
+//     })
+//     ->flatMap(function ($transactions, $monthYear) {
+//         return $transactions->groupBy(function ($t) {
+//             return $t->hub_info->states->stateName . '-' . $t->hub_info->lgas->lgaName . '-' . $t->transaction_list->services->serviceName;
+//         })->map(function ($group, $key) use ($monthYear) {
+
+//             $maleCount = $group->where('farmer_info.gender', 'Male')->count();
+//             $femaleCount = $group->where('farmer_info.gender', 'Female')->count();
+
+//             $amount = $group->sum('totalCost');
+
+//             [$state, $lga, $activity] = explode('-', $key);
+
+//             return [
+//                 "MonthYear" => $monthYear,
+//                 "State"     => $state,
+//                 "LGA"       => $lga,
+//                 "Activity"  => $activity,
+//                 "Male"      => $maleCount,
+//                 "Female"    => $femaleCount,
+//                 "Amount"    => $amount, // keep numeric for charts
+//             ];
+//         });
+//     })
+//     ->values();        return response()->json($data);
+    
+// }
     
     
     public function show($transactionId)

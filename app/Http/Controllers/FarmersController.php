@@ -15,16 +15,16 @@ class FarmersController extends Controller
     $state = $request->query('state');
     $lga = $request->query('lga');
 
-     $query = Farmers::with('subhubs', 'msp')->orderBy('id', 'desc');
+     $query = Farmers::with('hubs.states', 'hubs.lgas', 'hubs.subhub', 'msp')->orderBy('id', 'desc');
     
     if ($state) {
-        $query->whereHas('subhubs.hub', function($q) use ($state) {
+        $query->whereHas('hubs', function($q) use ($state) {
             $q->where('state', $state);
         });
     }
 
     if ($lga) {
-        $query->whereHas('subhubs.hub', function($q) use ($lga) {
+        $query->whereHas('hubs.subhub', function($q) use ($lga) {
             $q->where('lga', $lga);
         });
     }
