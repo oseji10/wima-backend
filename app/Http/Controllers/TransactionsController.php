@@ -63,14 +63,23 @@ public function analytics(Request $request)
 //    ->join('services', 'transaction_list.serviceId', '=', 'services.serviceId')
 //     ->groupBy('transaction_list.transactionReference', 'services.serviceName', 'services.measuringUnit', 'transaction_list.quantity', 'transaction_list.unitCost', 'transaction_list.created_at')
 //    ->get();
-$uniqueMsps = MSPs::select('msps.mspId', 'msps.gender')
-    ->join('transactions', 'transactions.msp', '=', 'msps.mspId')
+$uniqueMsps = MSPs::select('msps.mspId', 'msps.gender', 'states.stateName as state')
+    // ->join('transactions', 'transactions.msp', '=', 'msps.mspId')
+    ->join('hubs', 'msps.hub', '=', 'hubs.hubId')
+    ->join('states', 'hubs.state', '=', 'states.stateId')
     ->distinct()
     ->get();
 
 $genderCounts = [
     'Male'   => $uniqueMsps->whereIn('gender', ['Male','male'])->count(),
     'Female' => $uniqueMsps->whereIn('gender', ['Female','female'])->count(),
+    'State' => $uniqueMsps->groupBy('state')->map(function($group) {
+        return [
+            'Male'   => $group->whereIn('gender', ['Male','male'])->count(),
+            'Female' => $group->whereIn('gender', ['Female','female'])->count(),
+            'Total'  => $group->count(),
+        ];
+    })->toArray()
 ];
     $data = Transactions::select(
             'states.stateName as state',
