@@ -7,7 +7,7 @@ use App\Models\Transactions;
 use App\Models\Beneficiary;
 use App\Models\TransactionProducts;
 use App\Models\PendingTransactions;
-use App\Models\Products;
+use App\Models\MSPs;
 use App\Models\TransactionList;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
@@ -63,21 +63,31 @@ public function analytics(Request $request)
 //    ->join('services', 'transaction_list.serviceId', '=', 'services.serviceId')
 //     ->groupBy('transaction_list.transactionReference', 'services.serviceName', 'services.measuringUnit', 'transaction_list.quantity', 'transaction_list.unitCost', 'transaction_list.created_at')
 //    ->get();
+$uniqueMsps = MSPs::select('msps.mspId', 'msps.gender')
+    ->join('transactions', 'transactions.msp', '=', 'msps.mspId')
+    ->distinct()
+    ->get();
+
+$genderCounts = [
+    'Male'   => $uniqueMsps->whereIn('gender', ['Male','male'])->count(),
+    'Female' => $uniqueMsps->whereIn('gender', ['Female','female'])->count(),
+];
     $data = Transactions::select(
             'states.stateName as state',
             'lgas.lgaName as lga',
             'transactions.created_at',
             'services.serviceName as service',
-            \DB::raw("COUNT(CASE WHEN farmers.gender = 'Female' or farmers.gender = 'female' THEN 1 END) as FemaleCount"),
-            \DB::raw("COUNT(CASE WHEN farmers.gender = 'Male' or farmers.gender = 'male' THEN 1 END) as MaleCount"),
-            \DB::raw("SUM(totalCost) as totalCost")
+           \DB::raw("COUNT(DISTINCT CASE WHEN msps.gender IN ('Female','female') THEN msps.mspId END) as FemaleCount"),
+        \DB::raw("COUNT(DISTINCT CASE WHEN msps.gender IN ('Male','male') THEN msps.mspId END) as MaleCount"),
+        \DB::raw("SUM(totalCost) as totalCost")
         )
         ->join('hubs', 'transactions.hub', '=', 'hubs.hubId')
         ->join('states', 'hubs.state', '=', 'states.stateId') // join to states table
         ->join('lgas', 'hubs.lga', '=', 'lgas.lgaId') // join to lgas table
         ->join('transaction_list', 'transactions.transactionReference', '=', 'transaction_list.transactionReference')
         ->join('services', 'transaction_list.serviceId', '=', 'services.serviceId') // join to services table
-        ->join('farmers', 'transactions.farmer', '=', 'farmers.farmerId') // join to farmers table
+        ->join('farmers', 'transactions.farmer', '=', 'farmers.farmerId')
+        ->join('msps', 'transactions.msp', '=', 'msps.mspId')
         ->groupBy('states.stateName', 'lgas.lgaName', 'transactions.created_at', 'services.serviceName', 'farmers.gender')
         ->get()
         ->map(function($transaction) {
@@ -92,7 +102,11 @@ public function analytics(Request $request)
             ];
         });
 
-    return response()->json($data);
+    // return response()->json($data);
+    return response()->json([
+    'genderCounts' => $genderCounts,   // only once, global
+    'transactions' => $data // detailed breakdown
+]);
 
     // $data = Transactions::with([
     //     'farmer_info',
