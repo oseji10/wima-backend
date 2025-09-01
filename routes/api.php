@@ -83,7 +83,7 @@ Route::post('/membership-application', [MembershipController::class, 'store']);
     Route::get('/hubs', [HubsController::class, 'index']);
     Route::post('/hubs', [HubsController::class, 'store']);
     Route::put('/hubs/{activeLocationId}', [HubsController::class, 'update']);
-    Route::delete('/hubs/{activeLocationId}', [HubsController::class, 'destroy']);
+    Route::delete('/hubs/{hubId}', [HubsController::class, 'destroy']);
 
     Route::get('/farmers', [FarmersController::class, 'index']);
     Route::post('/farmers', [FarmersController::class, 'store']);

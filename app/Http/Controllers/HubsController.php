@@ -12,7 +12,7 @@ class HubsController extends Controller
 
   public function allActiveHubs()
 {
-    $hubs = Hubs::with('state_info')->get();
+    $hubs = Hubs::with('state_info', 'lga_info')->get();
     return response()->json($hubs);
 }
 
@@ -134,9 +134,9 @@ class HubsController extends Controller
     ], 200);
 }
 
-    public function destroy(Request $request)
+    public function destroy(Request $request, $hubId)
     {
-        $hub = Hubs::where('activeLocationId', $request->activeLocationId)->first();
+        $hub = Hubs::where('hubId', $request->hubId)->first();
         if (!$hub) {
             return response()->json(['message' => 'Hub not found'], 404);
         }

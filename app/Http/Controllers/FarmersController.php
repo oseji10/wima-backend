@@ -6,6 +6,9 @@ use Illuminate\Http\Request;
 use App\Models\Farmers;
 use App\Models\Lgas;
 use App\Models\Subhubs;
+use App\Models\Hubs;
+use Illuminate\Support\Str;
+
 class FarmersController extends Controller
 {
       public function index(Request $request)
@@ -97,29 +100,43 @@ class FarmersController extends Controller
 
     public function store(Request $request)
     {
-        // Directly get the data from the request
-        $data = $request->all();
-    
-        // Create a new user with the data (ensure that the fields are mass assignable in the model)
-        $hubs = Hubs::create($data);
-    
-        // Return a response, typically JSON
-        return response()->json($hubs, 201); // HTTP status code 201: Created
+       $hub = Hubs::where('state', $request->hub)
+        ->where('lga', $request->subHub)
+        ->first();
+
+    if (!$hub) {
+        return response()->json([
+            'error' => 'No active hub found for the selected state and LGA combination'
+        ], 422);
     }
+
+    // Generate farmerId
+    $farmerId = strtoupper(Str::random(10));
+
+    // Prepare data for creation
+    $data = $request->all();
+    $data['farmerId'] = $farmerId;
+    $data['hub'] = $hub->hubId; // Use the actual hubId from the Hub model
+
+    // Create farmer record
+    $farmer = Farmers::create($data);
+
+    return response()->json($farmer, 201);
+}
 
 
        public function update(Request $request)
 {
 
 
-    $hubs = Hubs::where('activeLocationId', $request->activeLocationId)->first();
-    if (!$hubs) {
-        return response()->json(['message' => 'Hub not found'], 404);
+    $farmer = Farmers::where('farmerId', $request->farmerId)->first();
+    if (!$farmer) {
+        return response()->json(['message' => 'Farmer not found'], 404);
     }
 
-    $hubs->update(['hubName' => $request->hubName, 'state' => $request->state, 'lga' => $request->lga]);
-    
-     $hubs->load('states', 'lgas');
+    $farmer->update(['hubName' => $request->hubName, 'state' => $request->state, 'lga' => $request->lga]);
+
+    $farmer->load('states', 'lgas');
 
     return response()->json([
         'activeLocationId' => $hubs->activeLocationId,
@@ -129,15 +146,15 @@ class FarmersController extends Controller
     ], 200);
 }
 
-    public function destroy(Request $request)
+    public function destroy(Request $request, $farmerId)
     {
-        $hub = Hubs::where('activeLocationId', $request->activeLocationId)->first();
-        if (!$hub) {
-            return response()->json(['message' => 'Hub not found'], 404);
+        $farmer = Farmers::where('farmerId', $request->farmerId)->first();
+        if (!$farmer) {
+            return response()->json(['message' => 'Farmer not found'], 404);
         }
 
-        $hub->delete();
-        return response()->json(['message' => 'Hub deleted successfully'], 200);
+        $farmer->delete();
+        return response()->json(['message' => 'Farmer deleted successfully'], 200);
     }
 
     public function search(Request $request){

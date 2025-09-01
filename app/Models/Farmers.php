@@ -15,6 +15,7 @@ class Farmers extends Model
         'farmerFirstName',
         'farmerLastName',
         'farmerOtherNames',
+        'phoneNumber',
         'alternatePhoneNumber',
         'gender',
         'maritalStatus',

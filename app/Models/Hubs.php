@@ -14,6 +14,7 @@ class Hubs extends Model
         'hubId',
         'state',
         'lgaOrHub',
+        'lga',
         'community',
         'addedBy',
     ];
@@ -46,4 +47,14 @@ class Hubs extends Model
     {
         return $this->belongsTo(Subhubs::class, 'hubId', 'hubId');
     } 
+
+     public function state_info()
+    {
+        return $this->belongsTo(State::class, 'state', 'stateId');
+    } 
+
+        public function lga_info()
+        {
+            return $this->belongsTo(Lgas::class, 'lga', 'lgaId');
+        }
 }
