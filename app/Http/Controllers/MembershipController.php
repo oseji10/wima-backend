@@ -108,7 +108,7 @@ public function store(Request $request)
     // 🔔 Notify all users with roleId = 3
     $users = User::where('role', 3)->get();
     foreach ($users as $user) {
-        Mail::to($user->email)->queue(new MembershipNotificationMail($data));
+        Mail::to($user->email)->send(new MembershipNotificationMail($data));
     }
 
     return response()->json([
