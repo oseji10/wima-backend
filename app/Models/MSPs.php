@@ -19,6 +19,7 @@ class MSPs extends Model
         'gender',
         'address',
         'addedBy',
+        'projectId',
     ];
     // protected $primaryKey = 'mspId';
     protected $hidden = [
@@ -43,5 +44,10 @@ class MSPs extends Model
       public function users()
     {
         return $this->belongsTo(User::class, 'userId', 'id');
+    } 
+
+      public function projects()
+    {
+        return $this->belongsTo(Project::class, 'projectId', 'projectId');
     } 
 }

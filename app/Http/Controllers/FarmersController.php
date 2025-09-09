@@ -17,9 +17,10 @@ class FarmersController extends Controller
     $search = $request->query('search');
     $state = $request->query('state');
     $lga = $request->query('lga');
+    $project = $request->query('projectId');
 
-     $query = Farmers::with('hubs.states', 'hubs.lgas', 'hubs.subhub', 'msp')->orderBy('id', 'desc');
-    
+     $query = Farmers::with('hubs.states', 'hubs.lgas', 'hubs.subhub', 'msp', 'projects')->orderBy('id', 'desc');
+
     if ($state) {
         $query->whereHas('hubs', function($q) use ($state) {
             $q->where('state', $state);
@@ -30,6 +31,9 @@ class FarmersController extends Controller
         $query->whereHas('hubs.subhub', function($q) use ($lga) {
             $q->where('lga', $lga);
         });
+    }
+    if ($project) {
+        $query->where('projectId', $project);
     }
 
     if ($search) {

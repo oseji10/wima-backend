@@ -13,16 +13,15 @@ class Beneficiary extends Model
     protected $fillable = [
         'mspId',
         'mspName',
-        
+        'projectId',
         'userId',
     ];
     protected $primaryKey = 'mspId';
 
-    // public function beneficiary_type()
-    // {
-    //     return $this->belongsTo(BeneficiaryType::class, 'beneficiaryType', 'typeId');
-    // }
-
+      public function projects()
+    {
+        return $this->belongsTo(Project::class, 'projectId', 'projectId');
+    } 
 
 
 }

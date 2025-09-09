@@ -17,7 +17,7 @@ use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\StockController;
 use App\Http\Controllers\ProductRequestController;
 use App\Http\Controllers\TransactionsController;
-use App\Http\Controllers\JAMBController;
+use App\Http\Controllers\ProjectsController;
 use App\Http\Controllers\HubsController;
 use App\Http\Controllers\MSPsController;
 use App\Http\Controllers\FarmersController;
@@ -70,9 +70,17 @@ Route::post('/membership-application', [MembershipController::class, 'store']);
         });
 
         // Application routes
+    Route::get('/users', [UsersController::class, 'index']);
+    Route::post('/users', [UsersController::class, 'createUser']);
+
+    Route::get('/projects', [ProjectsController::class, 'index']);
+    Route::post('/projects', [ProjectsController::class, 'store']);
+    Route::put('/projects/{projectId}', [ProjectsController::class, 'update']);
+    Route::delete('/projects/{projectId}', [ProjectsController::class, 'destroy']);
+
     Route::post('/roles', [RolesController::class, 'store']);
-    Route::put('/roles', [RolesController::class, 'update']);
-    Route::delete('/roles', [RolesController::class, 'destroy']);
+    Route::put('/roles/{roleId}', [RolesController::class, 'update']);
+    Route::delete('/roles/{roleId}', [RolesController::class, 'destroy']);
 
     Route::get('/states', [StateController::class, 'index']);
     Route::get('/lgas', [LgaController::class, 'getLgasByState']);
@@ -84,6 +92,8 @@ Route::post('/membership-application', [MembershipController::class, 'store']);
     Route::post('/hubs', [HubsController::class, 'store']);
     Route::put('/hubs/{activeLocationId}', [HubsController::class, 'update']);
     Route::delete('/hubs/{hubId}', [HubsController::class, 'destroy']);
+
+    Route::get('/hubs/state/{stateId}', [HubsController::class, 'hubsInState']);
 
     Route::get('/farmers', [FarmersController::class, 'index']);
     Route::post('/farmers', [FarmersController::class, 'store']);

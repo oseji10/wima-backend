@@ -16,22 +16,77 @@ use Illuminate\Http\JsonResponse;
 use App\Models\Lgas;
 class UsersController extends Controller
 {
-    public function index()
-    {
-        $users = User::with('staff.staff_type')->get();
-        return response()->json($users);
+    // public function index()
+    // {
+    //     $users = User::with('staff.staff_type')->get();
+    //     return response()->json($users);
        
+    // }
+
+public function index(Request $request)
+{
+    $perPage = $request->query('per_page', 10);
+    $search = $request->query('search');
+    $roleId = $request->query('role');
+
+    // roles you want to exclude
+    $excludedRoles = [1, 2, 3];
+
+    $query = User::with('user_role', 'state_info', 'lga_info')
+          ->orderBy('id', 'desc')
+        ->whereNotIn('role', $excludedRoles);
+
+    if ($search) {
+        $query->where(function ($q) use ($search) {
+            $q->where('firstName', 'like', "%$search%")
+              ->orWhere('lastName', 'like', "%$search%")
+              ->orWhere('email', 'like', "%$search%");
+        });
     }
 
-  public function supervisors()
-{
-    $users = User::with('staff.staff_type')
-        ->whereHas('staff', function ($query) {
-            $query->where('staffType', 3);
-        })
-        ->get();
+    if ($roleId) {
+        $query->where('role', $roleId);
+    }
+
+    $users = $query->paginate($perPage);
 
     return response()->json($users);
+}
+
+
+
+
+public function createUser(Request $request)
+{
+    $password = strtoupper(Str::random(2)) . mt_rand(1000000000, 9999999999);
+        // Create user
+    $user = User::create([
+        'firstName' => $request->firstName,
+        'lastName' => $request->lastName,
+        'otherNames' => $request->otherNames,
+        'phoneNumber' => $request->phoneNumber,
+        'email' => $request->email,
+        'password' => Hash::make($password),
+        'role' =>$request->role,
+        'state' =>$request->stateId,
+        'lga' =>$request->communityId,
+    ]);
+
+    Log::info('User created:', ['email' => $user->email, 'password' => $password]);
+
+    // Send email
+    try {
+        Mail::to($user->email)->send(new WelcomeEmail($user->firstName, $user->lastName, $user->email, $user->phoneNumber));
+        Log::info('Email sent successfully to ' . $user->email);
+    } catch (\Exception $e) {
+        Log::error('Email sending failed: ' . $e->getMessage());
+    }
+
+    // Return response
+    return response()->json([
+        'message' => "User successfully created",
+        // 'password' => $default_password,
+    ]);
 }
 
 

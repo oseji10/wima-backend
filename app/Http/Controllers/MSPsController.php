@@ -5,6 +5,10 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\MSPs;
 use App\Models\Lgas;
+use App\Models\User;
+use Illuminate\Support\Str;
+
+
 class MSPsController extends Controller
 {
 public function index(Request $request)
@@ -12,10 +16,11 @@ public function index(Request $request)
     $perPage = $request->query('per_page', 10);
     $search = $request->query('search');
     $state = $request->query('state');
-    $lga = $request->query('lga'); // Added LGA filter
-    
-    $query = MSPs::with(['users', 'hub.lgas'])->orderBy('id', 'desc');
-      
+    $lga = $request->query('lga'); 
+    $project = $request->query('projectId');
+
+    $query = MSPs::with(['users', 'hub.lgas', 'projects'])->orderBy('id', 'desc');
+
     // Filter by state
     if ($state) {
         $query->whereHas('hub', function($q) use ($state) {  // Changed $search to $state
@@ -30,6 +35,10 @@ public function index(Request $request)
         });
     }
     
+   if ($project) {
+        $query->where('projectId', $project);
+    }
+
     // Search functionality
     if ($search) {
         $query->where(function($q) use ($search) {
@@ -96,17 +105,47 @@ public function index(Request $request)
 
   
 
-    public function store(Request $request)
-    {
-        // Directly get the data from the request
-        $data = $request->all();
-    
-        // Create a new user with the data (ensure that the fields are mass assignable in the model)
-        $hubs = Hubs::create($data);
-    
-        // Return a response, typically JSON
-        return response()->json($hubs, 201); // HTTP status code 201: Created
-    }
+ public function store(Request $request)
+{
+    $default_password = strtoupper(Str::random(2)) . mt_rand(1000000000, 9999999999);
+    // Validate request
+    $request->validate([
+        'firstName' => 'required|string|max:255',
+        'lastName' => 'required|string|max:255',
+        'otherNames' => 'nullable|string|max:255',
+        'email' => 'required|string|email|max:255|unique:users,email',
+        'phoneNumber' => 'required|string|max:20|unique:users,phoneNumber',
+        'alternatePhoneNumber' => 'nullable|string|max:20',
+        'gender' => 'nullable|string|in:Male,Female',
+        'projectId' => 'required|integer|exists:projects,projectId',
+        'hub' => 'nullable|string|max:255',
+    ]);
+
+    // Create User
+    $user = User::create([
+        'firstName' => $request->firstName,
+        'lastName' => $request->lastName,
+        'otherNames' => $request->otherNames,
+        'phoneNumber' => $request->phoneNumber,
+        'email' => $request->email,
+        'password' => bcrypt($default_password), 
+    ]);
+
+    // Create MSP and link to User
+    $msp = MSPs::create([
+        'userId' => $user->id,
+        'alternatePhoneNumber' => $request->alternatePhoneNumber,
+        'gender' => $request->gender,
+        'projectId' => $request->projectId,
+        'hub' => $request->hub,
+    ]);
+
+    return response()->json([
+        'message' => 'MSP created successfully',
+        'user' => $user,
+        'msp' => $msp,
+    ], 201);
+}
 
 
        public function update(Request $request)

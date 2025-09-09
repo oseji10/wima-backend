@@ -16,6 +16,13 @@ class HubsController extends Controller
     return response()->json($hubs);
 }
 
+ public function hubsInState($stateId)
+{
+    $hubs = Hubs::with('lga_info')->where('state', $stateId)->get();
+    return response()->json($hubs);
+}
+
+
     public function index(Request $request)
 {
     $perPage = $request->query('per_page', 10);

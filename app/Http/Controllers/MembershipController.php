@@ -6,6 +6,9 @@ use App\Models\Membership;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+    use App\Models\User;
+use App\Mail\MembershipNotificationMail;
+use Illuminate\Support\Facades\Mail;
 
 class MembershipController extends Controller
 {
@@ -47,62 +50,71 @@ class MembershipController extends Controller
     return response()->json($membership_plans);
 }
 
-    public function store(Request $request)
-    {
-        $validator = Validator::make($request->all(), [
-            'membershipType' => 'required|in:Full Membership,Associate Membership,Youth & Student Membership,Operator Membership,Corporate/Institution Membership',
-            'firstName' => 'required|string|max:255',
-            'lastName' => 'required|string|max:255',
-            'email' => 'required|email|max:255|unique:membership_applications,email',
-            'phoneNumber' => 'required|string|max:20',
-            'profession' => 'required|string|max:255',
-            'message' => 'nullable|string',
-            'equipmentProof' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
-            'studentProof' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
-            'companyDetails' => 'nullable|string|max:255',
-            'companyMission' => 'nullable|string',
-            'operatorExperience' => 'nullable|string',
-            'skillsAssessment' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
-        ]);
 
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'errors' => $validator->errors()
-            ], 422);
-        }
 
-        $data = $request->only([
-            'membershipType',
-            'firstName',
-            'lastName',
-            'email',
-            'phoneNumber',
-            'profession',
-            'message',
-            'companyDetails',
-            'companyMission',
-            'operatorExperience'
-        ]);
+public function store(Request $request)
+{
+    $validator = Validator::make($request->all(), [
+        'membershipType' => 'required|in:Full Membership,Associate Membership,Youth & Student Membership,Operator Membership,Corporate/Institution Membership',
+        'firstName' => 'required|string|max:255',
+        'lastName' => 'required|string|max:255',
+        'email' => 'required|email|max:255|unique:membership_applications,email',
+        'phoneNumber' => 'required|string|max:20',
+        'profession' => 'required|string|max:255',
+        'message' => 'nullable|string',
+        'equipmentProof' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
+        'studentProof' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
+        'companyDetails' => 'nullable|string|max:255',
+        'companyMission' => 'nullable|string',
+        'operatorExperience' => 'nullable|string',
+        'skillsAssessment' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
+    ]);
 
-        // Handle file uploads
-        if ($request->hasFile('equipmentProof')) {
-            $data['equipmentProof'] = $request->file('equipmentProof')->store('equipment_proofs', 'public');
-        }
-
-        if ($request->hasFile('studentProof')) {
-            $data['studentProof'] = $request->file('studentProof')->store('student_proofs', 'public');
-        }
-
-        if ($request->hasFile('skillsAssessment')) {
-            $data['skillsAssessment'] = $request->file('skillsAssessment')->store('skills_assessments', 'public');
-        }
-
-        Membership::create($data);
-
+    if ($validator->fails()) {
         return response()->json([
-            'success' => true,
-            'message' => 'Membership application submitted successfully'
-        ], 201);
+            'success' => false,
+            'errors' => $validator->errors()
+        ], 422);
     }
+
+    $data = $request->only([
+        'membershipType',
+        'firstName',
+        'lastName',
+        'email',
+        'phoneNumber',
+        'profession',
+        'message',
+        'companyDetails',
+        'companyMission',
+        'operatorExperience'
+    ]);
+
+    // Handle file uploads
+    if ($request->hasFile('equipmentProof')) {
+        $data['equipmentProof'] = $request->file('equipmentProof')->store('equipment_proofs', 'public');
+    }
+
+    if ($request->hasFile('studentProof')) {
+        $data['studentProof'] = $request->file('studentProof')->store('student_proofs', 'public');
+    }
+
+    if ($request->hasFile('skillsAssessment')) {
+        $data['skillsAssessment'] = $request->file('skillsAssessment')->store('skills_assessments', 'public');
+    }
+
+    $membership = Membership::create($data);
+
+    // 🔔 Notify all users with roleId = 3
+    $users = User::where('role', 3)->get();
+    foreach ($users as $user) {
+        Mail::to($user->email)->queue(new MembershipNotificationMail($data));
+    }
+
+    return response()->json([
+        'success' => true,
+        'message' => 'Membership application submitted successfully'
+    ], 201);
+}
+
 }

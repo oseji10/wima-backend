@@ -27,6 +27,9 @@ class User extends Authenticatable implements JWTSubject
         'lastName',
         'otherNames',
         'password', 
+        'state',
+        'lga',
+        'status',
     ];
     protected $dates = ['deleted_at'];
     protected $hidden = ['password'];
@@ -70,5 +73,15 @@ class User extends Authenticatable implements JWTSubject
     {
         return $this->belongsTo(ApplicationType::class, 'applicationType', 'typeId');
     }
+
+        public function state_info()
+        {
+            return $this->belongsTo(State::class, 'state', 'stateId');
+        } 
+    
+        public function lga_info()
+        {
+            return $this->belongsTo(Lgas::class, 'lga', 'lgaId');
+        }
 
 }

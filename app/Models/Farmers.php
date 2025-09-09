@@ -25,6 +25,7 @@ class Farmers extends Model
         'disabilityDescription',
         'status',
         'hub',
+        'projectId',
     ];
     protected $primaryKey = 'id';
     protected $hidden = [
@@ -48,8 +49,8 @@ class Farmers extends Model
 
     
 
-    //   public function users()
-    // {
-    //     return $this->belongsTo(User::class, 'userId', 'id');
-    // } 
+      public function projects()
+    {
+        return $this->belongsTo(Project::class, 'projectId', 'projectId');
+    } 
 }

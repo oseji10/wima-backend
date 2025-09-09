@@ -20,6 +20,7 @@ class Transactions extends Model
         'transactionStatus',
         'totalCost',
         'hub',
+        'projectId',
     ];
     protected $primaryKey = 'transactionId';
 
