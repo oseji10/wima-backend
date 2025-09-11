@@ -104,10 +104,10 @@ public function store(Request $request)
         $data['skillsAssessment'] = $request->file('skillsAssessment')->store('skills_assessments', 'public');
     }
 
-    // $membership = Membership::create($data);
+    $membership = Membership::create($data);
 
     // 🔔 Notify all users with roleId = 3
-    $users = User::where('role', 3)->get();
+ $users = User::whereIn('role', [1, 3])->get();
     foreach ($users as $user) {
         Mail::to($user->email)->send(new MembershipNotificationMail($data));
     }
