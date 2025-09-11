@@ -7,6 +7,11 @@ use App\Models\Services;
 
 class ServicesController extends Controller
 {
+public function priceAlert(){
+     $prices = Services::with('category', 'hub.lga_info')->orderBy('serviceId', 'desc')->get();
+        return response()->json($prices);
+}
+
     public function index(Request $request)
 {
     $perPage = $request->query('per_page', 10);

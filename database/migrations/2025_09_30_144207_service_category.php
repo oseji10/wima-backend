@@ -11,12 +11,9 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('services', function (Blueprint $table) {
-            $table->id();
-            $table->string('serviceName');
-            $table->string('measurementUnit');
-            $table->string('costPerUnit');
-            $table->unsignedBigInteger('addedBy')->nullable();
+         Schema::create('service_categories', function (Blueprint $table) {
+            $table->id('categoryId');
+            $table->string('categoryName');
             $table->string('status')->default('active');
            
             $table->timestamps();
@@ -28,6 +25,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        //
+       
     }
 };

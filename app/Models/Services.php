@@ -16,4 +16,19 @@ class Services extends Model
         'addedBy',
         'status',
     ];
+
+    public function category()
+    {
+        return $this->belongsTo(ServicesCategory::class, 'serviceCategoryId', 'categoryId');
+    }
+
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'addedBy', 'id');
+    }
+
+    public function hub()
+    {
+        return $this->belongsTo(Hubs::class, 'hub', 'hubId');
+    }
 }

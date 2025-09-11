@@ -52,6 +52,7 @@ use App\Http\Controllers\CommodityController;
     Route::get('/hubs/all-active-hubs', [HubsController::class, 'allActiveHubs']);
 
 Route::post('/membership-application', [MembershipController::class, 'store']);
+    Route::get('/price-alert', [ServicesController::class, 'priceAlert']);
     // Protected routes with JWT authentication
     Route::get('/membership-application', [MembershipController::class, 'index']);
     Route::get('/roles', [RolesController::class, 'index']);
