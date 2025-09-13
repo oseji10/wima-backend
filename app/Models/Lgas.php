@@ -24,4 +24,9 @@ class Lgas extends Model
     {
         return $this->belongsTo(SenatorialDistrict::class, 'districtId', 'districtId');
     } 
+
+    public function community_leads()
+    {
+        return $this->hasMany(CommunityLead::class, 'lga', 'lgaId');
+    }
 }

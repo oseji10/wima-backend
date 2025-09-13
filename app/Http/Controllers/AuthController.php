@@ -97,6 +97,9 @@ class AuthController extends Controller
         'phoneNumber' => $user->phoneNumber ?? '',
         // 'role' => $user->role ? $user->role->roleName ?? '' : '', // Safe access
         'role' => $user->user_role->roleName ?? '',
+        'state' => $user->state_coordinator ? $user->state_coordinator->state->stateName : null,
+        'community' => $user->community_lead ? $user->community_lead->lga_info->lgaName : null,
+        // 'id' => $user->id ?? '',
         // 'applicationType' => $user->application_type  ? $user->application_type->typeName ?? '' : null, // Safe access
         // 'lga' => $user->staff && $user->staff->lga ? $user->staff->lga_info->lgaName ?? '' : null, // Safe access
         'access_token' => $accessToken,

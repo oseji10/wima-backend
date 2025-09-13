@@ -23,6 +23,10 @@ return new class extends Migration
             $table->text('companyMission')->nullable();
             $table->text('operatorExperience')->nullable();
             $table->string('skillsAssessment')->nullable();
+            // $table->string('isApproved')->nullable();
+            $table->string('status')->default('pending'); // pending, approved, rejected
+            $table->unsignedBigInteger('treatedBy')->nullable();
+            $table->foreign('treatedBy')->references('id')->on('users')->onDelete('set null');
             $table->timestamps();
         });
     }

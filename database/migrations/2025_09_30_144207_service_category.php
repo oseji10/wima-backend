@@ -9,16 +9,16 @@ return new class extends Migration
     /**
      * Run the migrations.
      */
-    public function up(): void
-    {
-         Schema::create('service_categories', function (Blueprint $table) {
-            $table->id('categoryId');
-            $table->string('categoryName');
-            $table->string('status')->default('active');
+    // public function up(): void
+    // {
+    //      Schema::create('service_categories', function (Blueprint $table) {
+    //         $table->id('categoryId');
+    //         $table->string('categoryName');
+    //         $table->string('status')->default('active');
            
-            $table->timestamps();
-        });
-    }
+    //         $table->timestamps();
+    //     });
+    // }
 
     /**
      * Reverse the migrations.

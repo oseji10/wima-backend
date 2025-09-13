@@ -118,4 +118,34 @@ public function store(Request $request)
     ], 201);
 }
 
+public function updateStatus(Request $request, $id)
+{
+    $validator = Validator::make($request->all(), [
+        'status' => 'required|in:pending,approved,rejected'
+    ]);
+
+    if ($validator->fails()) {
+        return response()->json([
+            'success' => false,
+            'errors' => $validator->errors()
+        ], 422);
+    }
+
+    $membership = Membership::find($id);
+    if (!$membership) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Membership application not found'
+        ], 404);
+    }
+
+    $membership->status = $request->status;
+    $membership->save();
+
+    return response()->json([
+        'success' => true,
+        'message' => 'Membership application status updated successfully'
+    ]);
+
+}
 }

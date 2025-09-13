@@ -84,4 +84,14 @@ class User extends Authenticatable implements JWTSubject
             return $this->belongsTo(Lgas::class, 'lga', 'lgaId');
         }
 
+        public function state_coordinator()
+        {
+            return $this->hasOne(StateCoordinators::class, 'userId', 'id');
+        } 
+
+         public function community_lead()
+        {
+            return $this->hasOne(CommunityLead::class, 'userId', 'id');
+        }
+
 }

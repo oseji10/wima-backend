@@ -16,19 +16,20 @@ class WelcomeEmail extends Mailable implements ShouldQueue
     public $firstName;
     public $lastName;
     public $password;
+    public $phoneNumber;
     // public $languageId;
       /**
      * Create a new message instance.
      *
      * @return void
      */
-    public function __construct($email, $firstName, $lastName, $password)
+    public function __construct($email, $firstName, $lastName, $password, $phoneNumber)
     {
         $this->email = $email;
         $this->firstName = $firstName;
         $this->lastName = $lastName;
         $this->password = $password;
-        // $this->languageId = $languageId;
+        $this->phoneNumber = $phoneNumber;
 
     }
 
@@ -47,7 +48,7 @@ class WelcomeEmail extends Mailable implements ShouldQueue
                         'lastName' => $this->lastName,
                         
                         'password' => $this->password,
-                        // 'languageId' => $this->languageId,
+                        'phoneNumber' => $this->phoneNumber,
                         'action_url' => "https://wimanigeria.com",
                         
                         'support_email' => "info@wimanigeria.com",

@@ -12,5 +12,8 @@ class State extends Model
     protected $primaryKey = 'stateId';
     protected $fillable = ['stateName', 'stateId'];
 
-  
+   public function state_coordinators()
+    {
+        return $this->hasMany(StateCoordinators::class);
+    }
 }

@@ -52,6 +52,7 @@ use App\Http\Controllers\CommodityController;
     Route::get('/hubs/all-active-hubs', [HubsController::class, 'allActiveHubs']);
 
 Route::post('/membership-application', [MembershipController::class, 'store']);
+Route::put('/membership-application/{id}/status', [MembershipController::class, 'updateStatus']);
     Route::get('/price-alert', [ServicesController::class, 'priceAlert']);
     // Protected routes with JWT authentication
     Route::get('/membership-application', [MembershipController::class, 'index']);
@@ -66,6 +67,8 @@ Route::post('/membership-application', [MembershipController::class, 'store']);
                 'email' => $user->email,
                 'role' => $user->user_role->roleName,
                 'id' => $user->id,
+                'state' => $user->state_coordinator ? $user->state_coordinator->state->stateName : null,
+                'community' => $user->community_lead ? $user->community_lead->lga_info->lgaName : null,
                 'message' => 'User authenticated successfully',
             ]);
         });

@@ -14,6 +14,8 @@ use Illuminate\Support\Facades\Mail;
 use DB;
 use Illuminate\Http\JsonResponse;
 use App\Models\Lgas;
+use App\Models\StateCoordinators;
+use App\Models\CommunityLead;
 class UsersController extends Controller
 {
     // public function index()
@@ -58,8 +60,20 @@ public function index(Request $request)
 
 public function createUser(Request $request)
 {
+    $request->validate([
+        'firstName' => 'required|string|max:255',
+        'lastName' => 'required|string|max:255',
+        'otherNames' => 'nullable|string|max:255',
+        'phoneNumber' => 'nullable|string|max:20',
+        'email' => 'nullable|email|max:255|unique:users,email',
+        'role' => 'required|integer|exists:roles,roleId',
+        'stateId' => 'required_if:role,4|integer|exists:states,stateId', // Required if role is State Coordinator
+        'communityId' => 'required_if:role,5|integer|exists:lgas,lgaId', // Required if role is Community Lead
+        // Add any other necessary validation rules
+    ]);
     $password = strtoupper(Str::random(2)) . mt_rand(1000000000, 9999999999);
-        // Create user
+    
+    // Create user
     $user = User::create([
         'firstName' => $request->firstName,
         'lastName' => $request->lastName,
@@ -67,16 +81,36 @@ public function createUser(Request $request)
         'phoneNumber' => $request->phoneNumber,
         'email' => $request->email,
         'password' => Hash::make($password),
-        'role' =>$request->role,
-        'state' =>$request->stateId,
-        'lga' =>$request->communityId,
+        'role' => $request->role,
     ]);
+
+    // Handle role-specific data
+    if ($request->role == 4) {
+        // Role 2: State Coordinator - save state information
+        if ($request->has('stateId')) {
+            StateCoordinators::create([
+                'userId' => $user->id,
+                'stateId' => $request->stateId,
+                // Add any other relevant fields for StateCoordinator
+            ]);
+        }
+    } elseif ($request->role == 5) {
+        // Role 3: Community Lead - save hub information
+        if ($request->has('communityId')) {
+            CommunityLead::create([
+                'userId' => $user->id,
+                'lga' => $request->communityId,
+                // Add any other relevant fields for CommunityLead
+            ]);
+        }
+    }
 
     Log::info('User created:', ['email' => $user->email, 'password' => $password]);
 
     // Send email
     try {
-        Mail::to($user->email)->send(new WelcomeEmail($user->firstName, $user->lastName, $user->email, $user->phoneNumber));
+        // Mail::to($user->email)->send(new WelcomeEmail($user->firstName, $user->lastName, $user->email, $user->phoneNumber));
+        Mail::to($user->email)->send(new WelcomeEmail($user->email, $user->firstName, $user->lastName, $password, $user->phoneNumber));
         Log::info('Email sent successfully to ' . $user->email);
     } catch (\Exception $e) {
         Log::error('Email sending failed: ' . $e->getMessage());
@@ -85,7 +119,6 @@ public function createUser(Request $request)
     // Return response
     return response()->json([
         'message' => "User successfully created",
-        // 'password' => $default_password,
     ]);
 }
 

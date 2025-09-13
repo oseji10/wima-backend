@@ -459,11 +459,13 @@
 
 
                          <h1>Hi, {{$firstName}}!</h1>
-                        <p>Welcome to the FCT College of Nursing Sciences (FCTCONS) Portal.</p>
+                        <p>A new account has been created for you on the MamaTrak App.</p>
                         <p>We are excited to have you on board.</p>
-                        <p>Kindly use the credentials below to log in to your account and begin your application process:</p>
-                        <p>If you have any questions or need assistance, please contact us at <a href="mailto:{{$support_email}}">{{$support_email}}</a>.</p>
-                        <p>Thank you for choosing FCTCONS!</p>
+                        
+                      
+                        <h3>Your login credentials are as follows:</h3>
+                        <br>
+                        
                         <!-- Action -->
                         <table class="body-action" align="center" width="100%" cellpadding="0" cellspacing="0" role="presentation">
                           <tr>
@@ -473,13 +475,16 @@
                                   <td align="center">
                                     Email: {{$email}}<br>
                                     Password: {{$password}}<br>
+                                    Phone Number: {{$phoneNumber}}<br>
                                   </td>
                                 </tr>
                               </table>
                             </td>
                           </tr>
                         </table>
-
+                        <br>
+  <p>If you have any questions or need assistance, please contact us at <a href="mailto:{{$support_email}}">{{$support_email}}</a>.</p>
+                        <p>If you did not request this account, please ignore this email.</p>
 
                       </div>
                     </td>
