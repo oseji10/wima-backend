@@ -51,6 +51,6 @@ class Farmers extends Model
 
       public function projects()
     {
-        return $this->belongsTo(Project::class, 'projectId', 'projectId');
+        return $this->belongsTo(Project::class, 'project', 'projectId');
     } 
 }

@@ -36,7 +36,7 @@ public function index(Request $request)
     }
     
    if ($project) {
-        $query->where('projectId', $project);
+        $query->where('project', $project);
     }
 
     // Search functionality

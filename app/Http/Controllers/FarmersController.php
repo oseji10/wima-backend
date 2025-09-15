@@ -33,7 +33,7 @@ class FarmersController extends Controller
         });
     }
     if ($project) {
-        $query->where('projectId', $project);
+        $query->where('project', $project);
     }
 
     if ($search) {

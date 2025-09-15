@@ -33,11 +33,11 @@ class TransactionsController extends Controller
 {
     $perPage = $request->query('per_page', 10);
     $search = $request->query('search');
-    
-    $query = Transactions::with('transaction_list', 'transaction_commodity.commodities', 'farmer_info', 'msp_info.users', 'hub_info', 'active_states')->orderBy('transactionId', 'desc');
-      
-  
-    
+     $project = $request->query('projectId');
+
+    $query = Transactions::with('transaction_list', 'transaction_commodity.commodities', 'farmer_info', 'msp_info.users', 'hub_info', 'active_states', 'projects')->orderBy('transactionId', 'desc');
+
+
     // Search functionality
     if ($search) {
         $query->where(function($q) use ($search) {
@@ -50,6 +50,11 @@ class TransactionsController extends Controller
               });
         });
     }
+
+     if ($project) {
+        $query->where('project', $project);
+    }
+
     
     $transactions = $query->paginate($perPage);
 

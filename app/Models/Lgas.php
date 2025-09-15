@@ -29,4 +29,9 @@ class Lgas extends Model
     {
         return $this->hasMany(CommunityLead::class, 'lga', 'lgaId');
     }
+
+    public function state()
+    {
+        return $this->belongsTo(State::class, 'state', 'stateId');
+    }
 }

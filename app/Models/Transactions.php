@@ -20,7 +20,7 @@ class Transactions extends Model
         'transactionStatus',
         'totalCost',
         'hub',
-        'projectId',
+        'project',
     ];
     protected $primaryKey = 'transactionId';
 
@@ -58,5 +58,10 @@ class Transactions extends Model
     {
         return $this->belongsTo(ActiveStates::class, 'state', 'stateId');
     }
+
+        public function projects()
+        {
+            return $this->belongsTo(Project::class, 'project', 'projectId');
+        }
 
 }
