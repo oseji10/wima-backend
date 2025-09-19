@@ -87,18 +87,27 @@ public function index(Request $request)
     }
 
     // Search functionality with role-based restrictions
-    if ($search) {
-        $query->where(function($q) use ($search, $user, $stateCoordinator, $communityLead) {
-            // Apply state or LGA restriction for search
-            if ($user->role === 4 && $stateCoordinator && $stateCoordinator->stateId) {
-                $q->where('state', $stateCoordinator->stateId);
-            } elseif ($user->role === 5 && $communityLead && $communityLead->lga) {
-                $q->where('lga', $communityLead->lga);
-            }
-            // Search condition
-            $q->where('hubName', 'like', "%$search%");
+if ($search) {
+    $query->where(function($q) use ($search, $user, $stateCoordinator, $communityLead) {
+        // Apply role restrictions
+        if ($user->role === 4 && $stateCoordinator && $stateCoordinator->stateId) {
+            $q->where('state', $stateCoordinator->stateId);
+        } elseif ($user->role === 5 && $communityLead && $communityLead->lga) {
+            $q->where('lga', $communityLead->lga);
+        }
+
+        // Search by hub name from lgas table
+        $q->orWhereHas('lgas', function($sub) use ($search) {
+            $sub->where('lgaName', 'like', "%$search%");
         });
-    }
+
+        // Optional: also allow searching by state name
+        $q->orWhereHas('states', function($sub) use ($search) {
+            $sub->where('stateName', 'like', "%$search%");
+        });
+    });
+}
+
 
     $hubs = $query->paginate($perPage);
 
