@@ -8,57 +8,89 @@ use App\Models\Lgas;
 use App\Models\Subhubs;
 use App\Models\Hubs;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Auth;
+use App\Models\StateCoordinators;
+use App\Models\CommunityLead;
 
 class FarmersController extends Controller
 {
-      public function index(Request $request)
-{
-    $perPage = $request->query('per_page', 10);
-    $search = $request->query('search');
-    $state = $request->query('state');
-    $lga = $request->query('lga');
-    $project = $request->query('projectId');
+public function index(Request $request)
+    {
+        $user = Auth::user();
+        $perPage = $request->query('per_page', 10);
+        $search = $request->query('search');
+        $state = $request->query('state');
+        $lga = $request->query('lga');
+        $project = $request->query('projectId');
 
-     $query = Farmers::with('hubs.states', 'hubs.lgas', 'hubs.subhub', 'msp', 'projects')->orderBy('id', 'desc');
+        $query = Farmers::with('hubs.states', 'hubs.lgas', 'hubs.subhub', 'msp', 'projects')->orderBy('id', 'desc');
+        $state_coordinators = StateCoordinators::where('userId', $user->id)->first();
+        $community_lead = CommunityLead::where('userId', $user->id)->first();
 
-    if ($state) {
-        $query->whereHas('hubs', function($q) use ($state) {
-            $q->where('state', $state);
-        });
+        // Role-based filtering
+        if ($user->role === 4) {
+            // State coordinators see only their state's records
+            $query->whereHas('hubs', function($q) use ($state_coordinators) {
+                $q->where('state', $state_coordinators->stateId);
+            });
+
+            if ($lga) {
+                $query->whereHas('hubs', function($q) use ($lga) {
+                    $q->where('lga', $lga);
+                });
+            }
+        } elseif ($user->role === 5) {
+            // Community leads see only their community's records
+            $query->whereHas('hubs', function($q) use ($community_lead) {
+                $q->where('lga', $community_lead->lga);
+            });
+        } elseif ($user->role === 1 || $user->role === 3) {
+            // Admin and National Coordinator can filter by state and LGA
+            if ($state) {
+                $query->whereHas('hubs', function($q) use ($state) {
+                    $q->where('state', $state);
+                });
+            }
+            if ($lga) {
+                $query->whereHas('hubs', function($q) use ($lga) {
+                    $q->where('lga', $lga);
+                });
+            }
+        }
+
+        // Project filtering for all roles
+        if ($project) {
+            $query->where('project', $project);
+        }
+
+        // Search functionality with role-based restrictions
+        if ($search) {
+            $query->where(function($q) use ($search, $user, $state_coordinators, $community_lead) {
+                // Apply state or LGA restriction for search
+                if ($user->role === 4) {
+                    $q->whereHas('hubs', function($hq) use ($state_coordinators) {
+                        $hq->where('state', $state_coordinators->stateId);
+                    });
+                } elseif ($user->role === 5) {
+                    $q->whereHas('hubs', function($hq) use ($community_lead) {
+                        $hq->where('lga', $community_lead->lga);
+                    });
+                }
+                // Search conditions
+                $q->where(function($sq) use ($search) {
+                    $sq->where('farmerFirstName', 'like', "%$search%")
+                       ->orWhere('farmerLastName', 'like', "%$search%")
+                       ->orWhere('farmerOtherNames', 'like', "%$search%")
+                       ->orWhereRaw("CONCAT(farmerFirstName, ' ', farmerLastName, ' ', farmerOtherNames) LIKE ?", ["%{$search}%"])
+                       ->orWhere('phoneNumber', 'like', "%$search%");
+                });
+            });
+        }
+
+        $farmers = $query->paginate($perPage);
+        
+        return response()->json($farmers);
     }
-
-    if ($lga) {
-        $query->whereHas('hubs.subhub', function($q) use ($lga) {
-            $q->where('lga', $lga);
-        });
-    }
-    if ($project) {
-        $query->where('project', $project);
-    }
-
-    if ($search) {
-        $query->where(function($q) use ($search) {
-            // $q->where('mspId', 'like', "%$search%")
-            //   $q->whereHas('users', function($q) use ($search) {
-                  $q->where('farmerFirstName', 'like', "%$search%")
-                    ->orWhere('farmerLastName', 'like', "%$search%")
-                    ->orWhere('farmerOtherNames', 'like', "%$search%")
-                    ->orWhereRaw("CONCAT(farmerFirstName, ' ', farmerLastName , ' ', farmerOtherNames) LIKE ?", ["%{$search}%"])
-                    ->orWhere('phoneNumber', 'like', "%$search%"); // Added phone number search
-            //   });
-        });
-    }
-
-    $farmers = $query->paginate($perPage);
-    
-    return response()->json($farmers);
-}
-    // public function index()
-    // {
-    //     $hubs = Hubs::with('states', 'lgas')->get();
-    //     return response()->json($hubs);
-       
-    // }
 
      public function getLgasByState(Request $request)
     {
@@ -104,8 +136,8 @@ class FarmersController extends Controller
 
     public function store(Request $request)
     {
-       $hub = Hubs::where('state', $request->hub)
-        ->where('lga', $request->subHub)
+       $hub = Hubs::where('lga', $request->hub)
+        // ->where('lga', $request->subHub)
         ->first();
 
     if (!$hub) {
@@ -121,7 +153,7 @@ class FarmersController extends Controller
     $data = $request->all();
     $data['farmerId'] = $farmerId;
     $data['hub'] = $hub->hubId; // Use the actual hubId from the Hub model
-
+    $data['project'] = $request->projectId;
     // Create farmer record
     $farmer = Farmers::create($data);
 
@@ -161,13 +193,26 @@ class FarmersController extends Controller
         return response()->json(['message' => 'Farmer deleted successfully'], 200);
     }
 
-    public function search(Request $request){
-        $search = $request->query('search');
-        $search_result = Farmers::where('farmerFirstName', 'like', "%$search%")
-        ->orWhere('farmerLastName', 'like', "%$search%")
-        ->orWhere('farmerId', 'like', "%$search%")
+   public function search(Request $request)
+{
+    $user = Auth::user();
+    $community_lead = CommunityLead::where('userId', $user->id)->first();
+    $hub = Hubs::where('lga', $community_lead->lga)->first();
+
+    $search = $request->query('search');
+
+    $search_result = Farmers::with('hubs.states', 'hubs.lgas')
+        ->where('hub', $hub->hubId) // hub filter applies globally
+        ->where(function ($query) use ($search) {
+            $query->where('farmerFirstName', 'like', "%$search%")
+                  ->orWhere('farmerLastName', 'like', "%$search%")
+                  ->orWhere('farmerId', 'like', "%$search%");
+        })
+        ->orderBy('id', 'desc')
         ->get();
-        return response()->json($search_result);
-    }
+
+    return response()->json($search_result);
+}
+
     
 }

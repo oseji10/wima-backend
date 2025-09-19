@@ -5,7 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CancerController;
 use App\Http\Controllers\BeneficiariesController;
-use App\Http\Controllers\HospitalController;
+use App\Http\Controllers\EquipmentController;
 use App\Http\Controllers\StateController;
 use App\Http\Controllers\LgaController;
 use App\Http\Controllers\ProductsController;
@@ -58,6 +58,7 @@ Route::put('/membership-application/{id}/status', [MembershipController::class, 
     Route::get('/membership-application', [MembershipController::class, 'index']);
     Route::get('/roles', [RolesController::class, 'index']);
 
+    
     Route::middleware(['auth.jwt'])->group(function () {
         Route::get('/user', function () {
             $user = auth()->user();
@@ -69,11 +70,18 @@ Route::put('/membership-application/{id}/status', [MembershipController::class, 
                 'id' => $user->id,
                 'state' => $user->state_coordinator ? $user->state_coordinator->state->stateName : null,
                 'community' => $user->community_lead ? $user->community_lead->lga_info->lgaName : null,
+                'stateId' => $user->state_coordinator ? $user->state_coordinator->stateId : null,
+                'communityId' => $user->community_lead ? $user->community_lead->lga : null,
                 'message' => 'User authenticated successfully',
             ]);
         });
 
         // Application routes
+    Route::get('/equipment', [EquipmentController::class, 'index']);
+    Route::post('/equipment', [EquipmentController::class, 'store']);
+
+    Route::get('/equipment/categories', [EquipmentController::class, 'equipmentCategories']);
+
     Route::get('/users', [UsersController::class, 'index']);
     Route::post('/users', [UsersController::class, 'createUser']);
 
@@ -119,7 +127,7 @@ Route::put('/membership-application/{id}/status', [MembershipController::class, 
 
     Route::get('/transactions', [TransactionsController::class, 'index']);
     Route::get('/transactions/{transactionId}', [TransactionsController::class, 'show']);
-    Route::post('/transactions', [TransactionsController::class, 'initiate']);
+    Route::post('/transactions', [TransactionsController::class, 'store']);
 
     Route::get('/farmers/search', [FarmersController::class, 'search']);
     // Route::post('/services', [FarmersController::class, 'store']);

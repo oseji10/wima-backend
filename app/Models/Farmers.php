@@ -25,7 +25,7 @@ class Farmers extends Model
         'disabilityDescription',
         'status',
         'hub',
-        'projectId',
+        'project',
     ];
     protected $primaryKey = 'id';
     protected $hidden = [

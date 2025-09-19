@@ -7,6 +7,11 @@ use App\Models\Hubs;
 use App\Models\Lgas;
 use App\Models\Subhubs;
 use App\Models\ActiveStates;
+use App\Models\State;
+use App\Models\StateCoordinators;
+use App\Models\CommunityLead;
+use Illuminate\Support\Facades\Auth;
+
 class HubsController extends Controller
 {
 
@@ -23,41 +28,85 @@ class HubsController extends Controller
 }
 
 
-    public function index(Request $request)
-{
-    $perPage = $request->query('per_page', 10);
-    $search = $request->query('search');
-    $state = $request->query('state');
-    $lga = $request->query('lga');
+ public function index(Request $request)
+    {
+        $user = Auth::user();
+        $perPage = $request->query('per_page', 10);
+        $search = $request->query('search');
+        $state = $request->query('state');
+        $lga = $request->query('lga');
 
-     $query = Hubs::with('states', 'lgas', 'subhubs')->orderBy('hubId', 'desc');
-    
-     if ($state) {
-        $query->where('state', $state);
+        $query = Hubs::with('states', 'lgas', 'subhubs')->orderBy('hubId', 'desc');
+
+        // Role-based filtering
+        if ($user->role === 4) {
+            // State coordinators see only their state's hubs
+            $stateCoordinator = StateCoordinators::where('userId', $user->id)->first();
+            if ($stateCoordinator && $stateCoordinator->stateId) {
+                $query->where('state', $stateCoordinator->stateId);
+            } else {
+                // Return empty result if stateId is not set
+                return response()->json([
+                    'data' => [],
+                    'total' => 0,
+                    'per_page' => $perPage,
+                    'current_page' => 1,
+                    'last_page' => 1,
+                ]);
+            }
+
+            if ($lga) {
+                $query->where('lga', $lga);
+            }
+        } elseif ($user->role === 5) {
+            // Community leads see only their LGA's hubs
+            $communityLead = CommunityLead::where('userId', $user->id)->first();
+            if ($communityLead && $communityLead->lga) {
+                $query->where('lga', $communityLead->lga);
+            } else {
+                // Return empty result if lga is not set
+                return response()->json([
+                    'data' => [],
+                    'total' => 0,
+                    'per_page' => $perPage,
+                    'current_page' => 1,
+                    'last_page' => 1,
+                ]);
+            }
+        } elseif ($user->role === 1 || $user->role === 3) {
+            // Admin and National Coordinator can filter by state and LGA
+            if ($state) {
+                $query->where('state', $state);
+            }
+            if ($lga) {
+                $query->where('lga', $lga);
+            }
+        }
+
+        // Search functionality with role-based restrictions
+        if ($search) {
+            $query->where(function($q) use ($search, $user, $stateCoordinator, $communityLead) {
+                // Apply state or LGA restriction for search
+                if ($user->role === 4) {
+                    $stateCoordinator = StateCoordinators::where('userId', $user->id)->first();
+                    if ($stateCoordinator && $stateCoordinator->stateId) {
+                        $q->where('state', $stateCoordinator->stateId);
+                    }
+                } elseif ($user->role === 5) {
+                    $communityLead = CommunityLead::where('userId', $user->id)->first();
+                    if ($communityLead && $communityLead->lga) {
+                        $q->where('lga', $communityLead->lga);
+                    }
+                }
+                // Search condition
+                $q->where('hubName', 'like', "%$search%");
+            });
+        }
+
+        $hubs = $query->paginate($perPage);
+
+        return response()->json($hubs);
     }
-
-    if ($lga) {
-        $query->where('lga', $lga);
-    }
-
-    //   if ($search) {
-    //     $query->where(function($q) use ($search) {
-    //         $q->where('applicationId', 'like', "%$search%")
-    //           ->orWhere('jambId', 'like', "%$search%");
-    //     })->orWhereHas('users', function($q) use ($search) {
-    //         $q->where('firstName', 'like', "%$search%")
-    //           ->orWhere('lastName', 'like', "%$search%")
-    //           ->orWhere('otherNames', 'like', "%$search%");
-    //     });
-    // }
-
-       
-
-    
-    $hubs = $query->paginate($perPage);
-    
-    return response()->json($hubs);
-}
     public function activeHubs()
     {
         $hubs = ActiveStates::with('state_info')->get();

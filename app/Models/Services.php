@@ -27,7 +27,7 @@ class Services extends Model
         return $this->belongsTo(User::class, 'addedBy', 'id');
     }
 
-    public function hub()
+    public function hubs()
     {
         return $this->belongsTo(Hubs::class, 'hub', 'hubId');
     }

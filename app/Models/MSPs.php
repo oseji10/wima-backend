@@ -19,7 +19,8 @@ class MSPs extends Model
         'gender',
         'address',
         'addedBy',
-        'projectId',
+        'project',
+        'userId',
     ];
     // protected $primaryKey = 'mspId';
     protected $hidden = [

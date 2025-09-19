@@ -7,61 +7,101 @@ use App\Models\MSPs;
 use App\Models\Lgas;
 use App\Models\User;
 use Illuminate\Support\Str;
-
+use Illuminate\Support\Facades\Auth;
+use App\Models\StateCoordinators;
+use App\Models\CommunityLead;
+use App\Models\Hubs;
 
 class MSPsController extends Controller
 {
 public function index(Request $request)
 {
+    $user = Auth::user();
     $perPage = $request->query('per_page', 10);
     $search = $request->query('search');
     $state = $request->query('state');
-    $lga = $request->query('lga'); 
+    $lga = $request->query('lga');
     $project = $request->query('projectId');
 
-    $query = MSPs::with(['users', 'hub.lgas', 'projects'])->orderBy('id', 'desc');
+    $query = MSPs::with(['users', 'hub.states', 'hub.lgas', 'projects'])
+        ->orderBy('id', 'desc');
 
-    // Filter by state
-    if ($state) {
-        $query->whereHas('hub', function($q) use ($state) {  // Changed $search to $state
-            $q->where('state', $state);  // Changed to exact match instead of LIKE
+    $state_coordinators = StateCoordinators::where('userId', $user->id)->first();
+    $community_lead = CommunityLead::where('userId', $user->id)->first();
+
+    // Role-based filtering
+    if ($user->role === 4) {
+        // State coordinators see only their state's records
+        $query->whereHas('hub', function($q) use ($state_coordinators) {
+            $q->where('state', $state_coordinators->stateId);
         });
-    }
-    
-    // Filter by LGA
-    if ($lga) {
-        $query->whereHas('hub', function($q) use ($lga) {
-            $q->where('lga', $lga);  // Exact match for LGA
+
+        if ($lga) {
+            $query->whereHas('hub', function($q) use ($lga) {
+                $q->where('lga', $lga);
+            });
+        }
+
+    } elseif ($user->role === 5) {
+        // Community leads see only their community's records
+        $query->whereHas('hub', function($q) use ($community_lead) {
+            $q->where('lga', $community_lead->lga);
         });
+
+    } elseif ($user->role === 1 || $user->role === 3) {
+        // Admin and National Coordinator can filter by state and LGA
+        if ($state) {
+            $query->whereHas('hub', function($q) use ($state) {
+                $q->where('state', $state);
+            });
+        }
+        if ($lga) {
+            $query->whereHas('hub', function($q) use ($lga) {
+                $q->where('lga', $lga);
+            });
+        }
     }
-    
-   if ($project) {
+
+    // Project filtering for all roles
+    if ($project) {
         $query->where('project', $project);
     }
 
-    // Search functionality
+    // Search functionality with role-based restrictions
     if ($search) {
-        $query->where(function($q) use ($search) {
-            $q->where('mspId', 'like', "%$search%")
-              ->orWhereHas('users', function($q) use ($search) {
-                  $q->where('firstName', 'like', "%$search%")
-                    ->orWhere('lastName', 'like', "%$search%")
-                    ->orWhere('otherNames', 'like', "%$search%")
-                    ->orWhere('phoneNumber', 'like', "%$search%")
-                     ->orWhereRaw("CONCAT(firstName, ' ', lastName , ' ', otherNames) LIKE ?", ["%{$search}%"]);
-              });
+        $query->where(function($q) use ($search, $user, $state_coordinators, $community_lead, $lga) {
+            // Apply state or LGA restriction for search
+            if ($user->role === 4) {
+                $q->whereHas('hub', function($hq) use ($state_coordinators, $lga) {
+                    $hq->where('state', $state_coordinators->stateId);
+                    if ($lga) {
+                        $hq->where('lga', $lga);
+                    }
+                });
+            } elseif ($user->role === 5) {
+                $q->whereHas('hub', function($hq) use ($community_lead) {
+                    $hq->where('lga', $community_lead->lga);
+                });
+            }
+
+            // Search conditions
+            $q->where(function($sq) use ($search) {
+                $sq->where('mspId', 'like', "%$search%")
+                   ->orWhereHas('users', function($uq) use ($search) {
+                       $uq->where('firstName', 'like', "%$search%")
+                          ->orWhere('lastName', 'like', "%$search%")
+                          ->orWhere('otherNames', 'like', "%$search%")
+                          ->orWhere('phoneNumber', 'like', "%$search%")
+                          ->orWhereRaw("CONCAT(firstName, ' ', lastName , ' ', otherNames) LIKE ?", ["%{$search}%"]);
+                   });
+            });
         });
     }
-    
+
     $msps = $query->paginate($perPage);
     
     return response()->json($msps);
-}  // public function index()
-    // {
-    //     $hubs = Hubs::with('states', 'lgas')->get();
-    //     return response()->json($hubs);
-       
-    // }
+}
 
      public function getLgasByState(Request $request)
     {
@@ -107,6 +147,11 @@ public function index(Request $request)
 
  public function store(Request $request)
 {
+    $loggeInUser = Auth::user();
+    $hub = Hubs::where('lga', $request->hub)
+        // ->where('lga', $request->subHub)
+        ->first();
+    // $loggeInUser->load('community_lead');
     $default_password = strtoupper(Str::random(2)) . mt_rand(1000000000, 9999999999);
     // Validate request
     $request->validate([
@@ -118,7 +163,7 @@ public function index(Request $request)
         'alternatePhoneNumber' => 'nullable|string|max:20',
         'gender' => 'nullable|string|in:Male,Female',
         'projectId' => 'required|integer|exists:projects,projectId',
-        'hub' => 'nullable|string|max:255',
+        'hub' => 'nullable',
     ]);
 
     // Create User
@@ -132,12 +177,15 @@ public function index(Request $request)
     ]);
 
     // Create MSP and link to User
+    $mspId = strtoupper(Str::random(6));
     $msp = MSPs::create([
+        'mspId' => $mspId,
         'userId' => $user->id,
         'alternatePhoneNumber' => $request->alternatePhoneNumber,
         'gender' => $request->gender,
-        'projectId' => $request->projectId,
-        'hub' => $request->hub,
+        'project' => $request->projectId,
+        'hub' => $hub->hubId,
+        'addedBy' => $loggeInUser->id,
     ]);
 
     return response()->json([
