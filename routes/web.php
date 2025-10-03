@@ -33,3 +33,22 @@ Route::get('/student_proofs/{filename}', function ($filename) {
     }
     return response()->file($path);
 });
+
+
+Route::get('/company_details/{filename}', function ($filename) {
+    $path = storage_path('app/public/company_details/' . $filename);
+    if (!file_exists($path)) {
+        abort(404);
+    }
+    return response()->file($path);
+});
+
+
+Route::get('/skills_assessment/{filename}', function ($filename) {
+    $path = storage_path('app/public/skills_assessment/' . $filename);
+    if (!file_exists($path)) {
+        abort(404);
+    }
+    return response()->file($path);
+});
+
