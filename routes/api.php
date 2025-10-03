@@ -138,3 +138,12 @@ Route::put('/membership-application/{id}/status', [MembershipController::class, 
             return response()->json([], 200);
         })->where('any', '.*');
        
+
+        // routes/web.php
+Route::get('/equipment_proofs/{filename}', function ($filename) {
+    $path = storage_path('app/public/equipment_proofs/' . $filename);
+    if (!file_exists($path)) {
+        abort(404);
+    }
+    return response()->file($path);
+});
