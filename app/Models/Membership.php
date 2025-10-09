@@ -21,5 +21,9 @@ class Membership extends Model
         'companyMission',
         'operatorExperience',
         'skillsAssessment',
+        'meansOfIdentification',
+        'meansOfIdentificationType',
+        'status',
+        'treatedBy',
     ];
 }

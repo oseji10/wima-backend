@@ -65,10 +65,13 @@ public function store(Request $request)
         'message' => 'nullable|string',
         'equipmentProof' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
         'studentProof' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
+
         'companyDetails' => 'nullable|string|max:255',
         'companyMission' => 'nullable|string',
         'operatorExperience' => 'nullable|string',
         'skillsAssessment' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
+        'meansOfIdentification' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
+        'meansOfIdentificationType' => 'nullable|string|max:255',
     ]);
 
     if ($validator->fails()) {
@@ -89,6 +92,7 @@ public function store(Request $request)
         'companyDetails',
         'companyMission',
         'operatorExperience'
+
     ]);
 
     // Handle file uploads
@@ -103,6 +107,10 @@ public function store(Request $request)
     if ($request->hasFile('skillsAssessment')) {
         $data['skillsAssessment'] = $request->file('skillsAssessment')->store('skills_assessments', 'public');
     }
+    if ($request->hasFile('identification')) {
+        $data['meansOfIdentification'] = $request->file('identification')->store('means_of_identification', 'public');
+    }
+    $data['meansOfIdentificationType'] = $request->identificationType;
 
     $membership = Membership::create($data);
 
