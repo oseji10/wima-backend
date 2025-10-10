@@ -60,3 +60,19 @@ Route::get('/means_of_identification/{filename}', function ($filename) {
     return response()->file($path);
 });
 
+Route::get('/identifications/{filename}', function ($filename) {
+    $path = storage_path('app/public/identifications/' . $filename);
+    if (!file_exists($path)) {
+        abort(404);
+    }
+    return response()->file($path);
+});
+
+Route::get('/cac_documents/{filename}', function ($filename) {
+    $path = storage_path('app/public/cac_documents/' . $filename);
+    if (!file_exists($path)) {
+        abort(404);
+    }
+    return response()->file($path);
+});
+
