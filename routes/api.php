@@ -56,6 +56,7 @@ Route::put('/membership-application/{id}/status', [MembershipController::class, 
     Route::get('/price-alert', [ServicesController::class, 'priceAlert']);
     // Protected routes with JWT authentication
     Route::get('/membership-application', [MembershipController::class, 'index']);
+    Route::delete('/membership-application/{id}', [MembershipController::class, 'destroy']);
     Route::get('/roles', [RolesController::class, 'index']);
 
     
@@ -147,3 +148,4 @@ Route::get('/equipment_proofs/{filename}', function ($filename) {
     }
     return response()->file($path);
 });
+

@@ -248,4 +248,30 @@ public function updateStatus(Request $request, $id)
     ]);
 
 }
+
+
+public function destroy($id)
+    {
+        $application = Membership::findOrFail($id);
+
+        // Only allow deletion if status is rejected
+        if ($application->status !== 'rejected') {
+            return response()->json(['message' => 'Only rejected applications can be deleted.'], 403);
+        }
+
+        // Optionally, delete associated files if needed
+        // For example:
+        // if ($application->meansOfIdentification) {
+        //     Storage::delete($application->meansOfIdentification);
+        // }
+        // if ($application->cacDocument) {
+        //     Storage::delete($application->cacDocument);
+        // }
+
+        $application->delete();
+
+        return response()->json(['message' => 'Application deleted successfully.']);
+    }
+
+
 }
