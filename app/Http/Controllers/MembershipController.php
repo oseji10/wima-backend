@@ -144,7 +144,7 @@ class MembershipController extends Controller
             'wardDistrict' => 'nullable|string|max:255',
             'community' => 'nullable|string|max:255',
             'phoneNumber' => 'required|string|max:20',
-            'email' => 'required|email|max:255|unique:membership_applications,email',
+            'email' => 'email|max:255',
             'occupation' => 'required|string|max:255',
             'organization' => 'nullable|string|max:255',
             'positionTitle' => 'nullable|string|max:255',
