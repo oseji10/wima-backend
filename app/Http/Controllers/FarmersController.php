@@ -134,11 +134,37 @@ public function index(Request $request)
 
   
 
-    public function store(Request $request)
-    {
-       $hub = Hubs::where('lga', $request->hub)
-        // ->where('lga', $request->subHub)
-        ->first();
+//     public function store(Request $request)
+//     {
+//        $hub = Hubs::where('lga', $request->hub)
+//         // ->where('lga', $request->subHub)
+//         ->first();
+
+//     if (!$hub) {
+//         return response()->json([
+//             'error' => 'No active hub found for the selected state and LGA combination'
+//         ], 422);
+//     }
+
+//     // Generate farmerId
+//     $farmerId = strtoupper(Str::random(10));
+
+//     // Prepare data for creation
+//     $data = $request->all();
+//     $data['farmerId'] = $farmerId;
+//     $data['hub'] = $hub->hubId; // Use the actual hubId from the Hub model
+//     $data['project'] = $request->projectId;
+//     // Create farmer record
+//     $farmer = Farmers::create($data);
+
+//     return response()->json($farmer, 201);
+// }
+
+
+public function store(Request $request)
+{
+    // Find the hub by LGA
+    $hub = Hubs::where('lga', $request->hub)->first();
 
     if (!$hub) {
         return response()->json([
@@ -146,19 +172,27 @@ public function index(Request $request)
         ], 422);
     }
 
-    // Generate farmerId
+    // Generate unique farmerId
     $farmerId = strtoupper(Str::random(10));
 
-    // Prepare data for creation
+    // Prepare data
     $data = $request->all();
     $data['farmerId'] = $farmerId;
-    $data['hub'] = $hub->hubId; // Use the actual hubId from the Hub model
+    $data['hub'] = $hub->hubId;
     $data['project'] = $request->projectId;
+
     // Create farmer record
     $farmer = Farmers::create($data);
 
-    return response()->json($farmer, 201);
+    // ---- Run farmerSearch immediately after storing ----
+    $request->merge([
+        'communityId' => $request->hub,
+        'search' => $farmer->farmerId, // search by this unique ID
+    ]);
+
+    return $this->farmerSearch($request);
 }
+
 
 
        public function update(Request $request)
@@ -213,6 +247,59 @@ public function index(Request $request)
 
     return response()->json($search_result);
 }
+
+
+ public function validateFarmer(Request $request, $phoneNumber)
+    {
+       
+
+        $farmer = Farmers::where('phoneNumber', $phoneNumber)->first();
+
+        return response()->json(['exists' => $farmer ? true : false, 'fullname' => $farmer ? $farmer->farmerFirstName . ' ' . $farmer->farmerLastName : null]);
+    }
+    
+
+//    public function farmerSearch(Request $request)
+// {
+//     // $user = Auth::user();
+//     // $community_lead = CommunityLead::where('userId', $user->id)->first();
+//     $hub = Hubs::where('lga', $request->communityId)->first();
+
+//     $search = $request->query('search');
+
+//     $search_result = Farmers::with('hubs.states', 'hubs.lgas')
+//         ->where('hub', $hub->hubId) // hub filter applies globally
+//         ->where(function ($query) use ($search) {
+//             $query->where('farmerFirstName', 'like', "%$search%")
+//                   ->orWhere('farmerLastName', 'like', "%$search%")
+//                   ->orWhere('farmerId', 'like', "%$search%");
+//         })
+//         ->orderBy('id', 'desc')
+//         ->get();
+
+//     return response()->json($search_result);
+// }
+
+public function farmerSearch(Request $request)
+{
+    $hub = Hubs::where('lga', $request->communityId)->first();
+
+    // ✅ Use input() instead of query() so it works for both GET and internal calls
+    $search = $request->input('search');
+
+    $search_result = Farmers::with('hubs.states', 'hubs.lgas')
+        ->where('hub', $hub->hubId)
+        ->where(function ($query) use ($search) {
+            $query->where('farmerFirstName', 'like', "%$search%")
+                  ->orWhere('farmerLastName', 'like', "%$search%")
+                  ->orWhere('farmerId', 'like', "%$search%");
+        })
+        ->orderBy('id', 'desc')
+        ->get();
+
+    return response()->json($search_result);
+}
+
 
     
 }

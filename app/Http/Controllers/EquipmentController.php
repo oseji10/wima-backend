@@ -7,6 +7,7 @@ use App\Models\Equipment;
 use App\Models\EquipmentCategory;
 use App\Models\StateCoordinators;
 use App\Models\CommunityLead;
+use App\Models\Hubs;
 
 use Illuminate\Support\Facades\Auth;
 
@@ -93,6 +94,34 @@ class EquipmentController extends Controller
         $farmers = $query->paginate($perPage);
         
         return response()->json($farmers);
+    }
+
+    public function searchEquipment(Request $request)
+    {
+      
+        $hub = Hubs::where('lga', $request->hubId)->first();
+
+        $equipments = Equipment::with('category', 'hub.states', 'hub.lgas', 'owner')
+        ->where('hub', $hub->hubId)
+        ->orderBy('equipmentId', 'desc')
+        ->get();
+
+       
+        return response()->json($equipments);
+    }
+
+     public function searchEquipment2(Request $request)
+    {
+      
+        $hub = Hubs::where('hubId', $request->hubId)->first();
+
+        $equipments = Equipment::with('category', 'hub.states', 'hub.lgas', 'owner')
+        ->where('hub', $hub->hubId)
+        ->orderBy('equipmentId', 'desc')
+        ->get();
+
+       
+        return response()->json($equipments);
     }
 
     public function equipmentCategories()

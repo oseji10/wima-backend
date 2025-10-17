@@ -18,12 +18,12 @@ class LgaController extends Controller
     {
         // Validate the request
         $request->validate([
-            'stateId' => 'required|string'
+            'state' => 'required|string'
         ]);
 
         try {
             // Option 1: If you're passing state name
-            $state = State::where('stateId', $request->stateId)->first();
+            $state = State::where('stateId', $request->state)->first();
             
             // Option 2: If you're passing state ID
             // $state = State::find($request->state);

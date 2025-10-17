@@ -298,8 +298,8 @@ $genderCounts = [
             'hub' => ['required', 'integer'],
             'projectId' => ['required', 'string', 'exists:projects,projectId'],
             'transactionType' => ['required', 'in:Service,Product'],
-            'paymentMethod' => ['required', 'in:Cash,Bank Transfer'],
-            'transactionStatus' => ['required', 'in:Paid,Pending'],
+            // 'paymentMethod' => ['required', 'in:Cash,Bank Transfer'],
+            // 'transactionStatus' => ['required', 'in:Paid,Pending'],
             'totalCost' => ['required', 'numeric', 'min:0'],
             'transaction_commodity' => ['array'],
             'transaction_commodity.*' => ['integer', 'exists:commodities,commodityId'],
@@ -329,8 +329,8 @@ $genderCounts = [
                     'hub' => $hub->hubId,
                     'project' => $request->projectId,
                     'transactionType' => $request->transactionType,
-                    'paymentMethod' => $request->paymentMethod,
-                    'transactionStatus' => $request->transactionStatus,
+                    // 'paymentMethod' => $request->paymentMethod,
+                    'transactionStatus' => "PENDING",
                     'totalCost' => $request->totalCost,
                     'transactionReference' => $transactionReference,
                 ]);
@@ -374,7 +374,7 @@ $genderCounts = [
     
     public function update(Request $request, $transactionId)
     {
-        $transaction = Transaction::find($transactionId);
+        $transaction = Transactions::find($transactionId);
         if (!$transaction) {
             return response()->json(['message' => 'Transaction not found'], 404);
         }
@@ -391,7 +391,7 @@ $genderCounts = [
     
     public function destroy($transactionId)
     {
-        $transaction = Transaction::find($transactionId);
+        $transaction = Transactions::find($transactionId);
         if (!$transaction) {
             return response()->json(['message' => 'Transaction not found'], 404);
         }
@@ -400,4 +400,227 @@ $genderCounts = [
         return response()->json(['message' => 'Transaction deleted successfully']);
     }
     
+
+
+        public function updatePaymentMethod(Request $request, $transactionId)
+    {
+        $transaction = Transactions::find($transactionId);
+        if (!$transaction) {
+            return response()->json(['message' => 'Transaction not found'], 404);
+        }
+
+        $paymentMethod = $request->input('paymentMethod');
+        if (!$paymentMethod) {
+            return response()->json(['message' => 'Payment method is required'], 400);
+        }
+
+        $transaction->paymentMethod = $paymentMethod;
+        $transaction->transactionStatus = "PAID";
+        $transaction->save();
+
+        return response()->json([
+            'message' => 'Payment method updated successfully',
+            'transactionId' => $transaction->transactionId,
+            'paymentMethod' => $transaction->paymentMethod,
+            'transactionStatus' => $transaction->transactionStatus
+        ], 200);
+    }
+
+
+           public function updateProjectType(Request $request, $transactionId)
+    {
+        $transaction = Transactions::find($transactionId);
+        if (!$transaction) {
+            return response()->json(['message' => 'Transaction not found'], 404);
+        }
+
+        $projectId = $request->input('projectId');
+        if (!$projectId) {
+            return response()->json(['message' => 'Project ID is required'], 400);
+        }
+
+        $transaction->project = $projectId;
+        $transaction->save();
+
+        return response()->json([
+            'message' => 'Project type updated successfully',
+            'transactionId' => $transaction->transactionId,
+            'projectType' => $transaction->projectType
+        ], 200);
+    }
+
+
+    // public function store(Request $request)
+    // {
+    //     // Define validation rules
+    //     $validator = Validator::make($request->all(), [
+    //         // 'msp' => ['required', 'string', 'exists:msps,mspId'],
+    //         'farmer' => ['required', 'string', 'exists:farmers,farmerId'],
+    //         'hub' => ['required', 'integer'],
+    //         'projectId' => ['required', 'string', 'exists:projects,projectId'],
+    //         'transactionType' => ['required', 'in:Service,Product'],
+    //         // 'paymentMethod' => ['required', 'in:Cash,Bank Transfer'],
+    //         // 'transactionStatus' => ['required', 'in:Paid,Pending'],
+    //         'totalCost' => ['required', 'numeric', 'min:0'],
+    //         'transaction_commodity' => ['array'],
+    //         'transaction_commodity.*' => ['integer', 'exists:commodities,commodityId'],
+    //     ]);
+
+        
+    //     // Check for validation errors
+    //     if ($validator->fails()) {
+    //         return response()->json([
+    //             'errors' => $validator->errors(),
+    //         ], 422);
+    //     }
+        
+    //     try {
+    //         // Start a database transaction
+    //         return DB::transaction(function () use ($request) {
+    //             // Generate a unique transaction reference
+    //             // $transactionReference = Str::uuid()->toString();
+    //              $transactionReference = strtoupper(Str::random(2)) . mt_rand(1000000000, 9999999999);
+                
+    //             $hub = \App\Models\Hubs::where('lga', $request->hub)->first();
+    //             // Create the transaction
+    //             $transaction = Transactions::create([
+    //                 // 'transactionId' => $transactionId,
+    //                 // 'msp' => $request->msp,
+    //                 'farmer' => $request->farmer,
+    //                 'hub' => $hub->hubId,
+    //                 'project' => $request->projectId,
+    //                 'transactionType' => $request->transactionType,
+    //                 // 'paymentMethod' => $request->paymentMethod,
+    //                 'transactionStatus' => "PENDING",
+    //                 'totalCost' => $request->totalCost,
+    //                 'transactionReference' => $transactionReference,
+    //             ]);
+
+          
+
+    //             // Load related data for response
+    //             $transaction->load([
+    //                 // 'msp_info' => fn($query) => $query->select('mspId'),
+    //                 'farmer_info' => fn($query) => $query->select('farmerId'),
+    //                 'hub_info' => fn($query) => $query->select('hubId'),
+    //                 'projects' => fn($query) => $query->select('projectId', 'projectName'),
+    //                 // 'transaction_commodity' => fn($query) => $query->select('transactionReference', 'commodityId')->with(['commodity' => fn($q) => $q->select('id', 'name')]),
+    //             ]);
+
+    //             return response()->json([
+    //                 'message' => 'Transaction created successfully',
+    //                 'data' => $transaction,
+    //             ], 201);
+    //         });
+    //     } catch (\Exception $e) {
+    //         \Log::error('Error creating transaction: ' . $e->getMessage());
+    //         return response()->json([
+    //             'error' => 'Failed to create transaction',
+    //         ], 500);
+    //     }
+    // }
+
+
+    public function bookService(Request $request)
+{
+    // Define validation rules
+    $validator = Validator::make($request->all(), [
+        'phoneNumber' => ['required', 'string', 'size:11'],
+        'agentId' => ['nullable', 'string', 'exists:agents,agentId'],
+        'name' => ['required', 'string', 'max:255'],
+        'email' => ['nullable', 'email', 'max:255'],
+        'stateId' => ['required', 'integer', 'exists:states,stateId'],
+        'lgaId' => ['required', 'integer', 'exists:hubs,hubId'], // Assuming lgaId is hubId
+        'serviceId' => ['required', 'string', 'exists:services,serviceId'],
+        'equipmentId' => ['required', 'string', 'exists:equipment,equipmentId'],
+        'quantity' => ['required', 'integer', 'min:1'],
+        // 'projectId' => ['nullable', 'string', 'exists:projects,projectId'], // Optional, will default if not provided
+    ]);
+
+    // Check for validation errors
+    if ($validator->fails()) {
+        return response()->json([
+            'errors' => $validator->errors(),
+        ], 422);
+    }
+
+    try {
+        // Start a database transaction
+        return DB::transaction(function () use ($request) {
+            // Generate a unique transaction reference
+            $transactionReference = strtoupper(Str::random(2)) . mt_rand(1000000000, 9999999999);
+
+            // Handle farmer: find or create based on phoneNumber
+            $farmer = \App\Models\Farmers::where('phoneNumber', $request->phoneNumber)->first();
+            if (!$farmer) {
+                $farmer = \App\Models\Farmers::create([
+                    'phoneNumber' => $request->phoneNumber,
+                    'name' => $request->name,
+                    'email' => $request->email,
+                    // Add other default fields as needed, e.g., status: 'active'
+                ]);
+            }
+
+            // Get MSP if agentId provided
+            $mspId = $request->agentId ? $request->agentId : null;
+
+            // Get hub (lgaId is hubId)
+            $hub = \App\Models\Hubs::where('hubId', $request->lgaId)->first();
+            if (!$hub) {
+                throw new \Exception('Hub not found');
+            }
+
+            // Default projectId if not provided
+            // $projectId = $request->projectId ?? \App\Models\Project::first()->projectId ?? null;
+            // if (!$projectId) {
+            //     throw new \Exception('No default project available');
+            // }
+
+            // Fetch equipment to calculate totalCost (assuming equipment has 'price' field)
+            $equipment = \App\Models\Services::where('serviceId', $request->serviceId)
+                // ->where('hubId', $request->lgaId) // Ensure it's for the hub
+                ->first();
+            if (!$equipment) {
+                throw new \Exception('Equipment not available for the selected hub');
+            }
+            $totalCost = $equipment->price * $request->quantity; // Assuming price per unit
+
+            // Create the transaction
+            $transaction = Transactions::create([
+                // 'msp' => $mspId,
+                'farmer' => $farmer->farmerId,
+                'hub' => $hub->hubId,
+                // 'project' => $projectId,
+                'transactionType' => 'Service',
+                'paymentMethod' => 'Cash', // Default, or add to request if needed
+                'transactionStatus' => 'PENDING',
+                'totalCost' => $totalCost,
+                'transactionReference' => $transactionReference,
+                // transaction_commodity can be added if needed, e.g., based on service
+            ]);
+
+     
+            // Load related data for response
+            $transaction->load([
+                'msp_info' => fn($query) => $query->select('mspId', 'name'),
+                'farmer_info' => fn($query) => $query->select('farmerId', 'farmerFirstName', 'phoneNumber'),
+                'hub_info' => fn($query) => $query->select('hubId', 'lga'),
+                // 'projects' => fn($query) => $query->select('projectId', 'projectName'),
+                // 'transaction_commodity' => fn($query) => $query->select('transactionReference', 'commodityId')->with(['commodity' => fn($q) => $q->select('id', 'name')]),
+            ]);
+
+            return response()->json([
+                'message' => 'Booking successful! Transaction created.',
+                'data' => $transaction,
+            ], 201);
+        });
+    } catch (\Exception $e) {
+        \Log::error('Error creating transaction: ' . $e->getMessage());
+        return response()->json([
+            'error' => $e->getMessage(),
+        ], 500);
+    }
+}
+
+
 }

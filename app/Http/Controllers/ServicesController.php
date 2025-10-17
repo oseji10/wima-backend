@@ -160,4 +160,19 @@ public function priceAlert(){
         $service->delete();
         return response()->json(['message' => 'Service deleted successfully'], 200);
     }
+
+
+     public function loadServices(Request $request)
+    {
+      
+        $hub = Hubs::where('hubId', $request->hubId)->first();
+
+        $services = Services::with('hubs.lgas')->orderBy('serviceId', 'desc')
+        ->where('hub', $hub->hubId)
+        ->orderBy('serviceId', 'desc')
+        ->get();
+
+       
+        return response()->json($services);
+    }
 }

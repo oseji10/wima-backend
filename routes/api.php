@@ -12,7 +12,7 @@ use App\Http\Controllers\ProductsController;
 use App\Http\Controllers\RolesController;
 use App\Http\Controllers\UsersController;
 use App\Http\Controllers\MinistryController;
-use App\Http\Controllers\CadreController;
+use App\Http\Controllers\AgentsController;
 use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\StockController;
 use App\Http\Controllers\ProductRequestController;
@@ -50,6 +50,7 @@ use App\Http\Controllers\CommodityController;
     Route::get('/transactions/analytics', [TransactionsController::class, 'analytics']);
     Route::get('/commodities', [CommodityController::class, 'allcommodities']);
     Route::get('/hubs/all-active-hubs', [HubsController::class, 'allActiveHubs']);
+    Route::post('/hub-lgas', [LgaController::class, 'getLgasByState']);
 
 Route::post('/membership-application', [MembershipController::class, 'store']);
 Route::put('/membership-application/{id}/status', [MembershipController::class, 'updateStatus']);
@@ -60,6 +61,14 @@ Route::put('/membership-application/{id}/status', [MembershipController::class, 
     Route::get('/roles', [RolesController::class, 'index']);
 
     
+    Route::get('/validate-agent/{agentId}', [AgentsController::class, 'validateAgentId']);
+    Route::get('/validate-farmer/{phoneNumber}', [FarmersController::class, 'validateFarmer']);
+    
+    Route::post('/load-services', [ServicesController::class, 'loadServices']);
+    Route::get('/load-equipment', [EquipmentController::class, 'searchEquipment2']);
+
+    Route::post('/book-service', [TransactionsController::class, 'bookService']);
+
     Route::middleware(['auth.jwt'])->group(function () {
         Route::get('/user', function () {
             $user = auth()->user();
@@ -80,6 +89,9 @@ Route::put('/membership-application/{id}/status', [MembershipController::class, 
         // Application routes
     Route::get('/equipment', [EquipmentController::class, 'index']);
     Route::post('/equipment', [EquipmentController::class, 'store']);
+    Route::get('/equipment/search', [EquipmentController::class, 'searchEquipment']);
+
+    
 
     Route::get('/equipment/categories', [EquipmentController::class, 'equipmentCategories']);
 
@@ -112,6 +124,8 @@ Route::put('/membership-application/{id}/status', [MembershipController::class, 
     Route::post('/farmers', [FarmersController::class, 'store']);
     Route::put('/farmers/{farmerId}', [FarmersController::class, 'update']);
     Route::delete('/farmers/{farmerId}', [FarmersController::class, 'destroy']);
+    Route::get('/farmers/search-2', [FarmersController::class, 'farmerSearch']);
+    
 
     Route::get('/msps', [MSPsController::class, 'index']);
     Route::post('/msps', [MSPsController::class, 'store']);
@@ -129,6 +143,13 @@ Route::put('/membership-application/{id}/status', [MembershipController::class, 
     Route::get('/transactions', [TransactionsController::class, 'index']);
     Route::get('/transactions/{transactionId}', [TransactionsController::class, 'show']);
     Route::post('/transactions', [TransactionsController::class, 'store']);
+    Route::put('/transactions/{transactionId}/confirm', [TransactionsController::class, 'updatePaymentMethod']);
+    Route::put('/transactions/{transactionId}/project-type', [TransactionsController::class, 'updateProjectType']);
+
+    Route::get('/agents', [AgentsController::class, 'index']);
+    Route::post('/agents', [AgentsController::class, 'store']);
+    Route::put('/agents/{agentId}', [AgentsController::class, 'update']);
+    Route::delete('/agents/{agentId}', [AgentsController::class, 'destroy']);
 
     Route::get('/farmers/search', [FarmersController::class, 'search']);
     // Route::post('/services', [FarmersController::class, 'store']);

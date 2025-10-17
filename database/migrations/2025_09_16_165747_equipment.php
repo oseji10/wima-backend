@@ -17,9 +17,12 @@ return new class extends Migration
             $table->string('equipmentName')->nullable();
             $table->string('value')->nullable();
             $table->unsignedBigInteger('equipmentCategory')->nullable();
+            $table->unsignedBigInteger('serviceCategoryId')->nullable();
             $table->unsignedBigInteger('hub')->nullable();
             $table->unsignedBigInteger('owner')->nullable();
             $table->string('exact_location')->nullable();
+
+            $table->foreign('serviceCategoryId')->references('categoryId')->on('service_categories')->onDelete('cascade');
 
             $table->foreign('equipmentCategory')->references('categoryId')->on('equipment_category')->onDelete('cascade');
             $table->foreign('hub')->references('hubId')->on('hubs')->onDelete('cascade');

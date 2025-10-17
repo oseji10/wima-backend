@@ -8,7 +8,7 @@ class RolesController extends Controller
 {
     public function index()
     {
-        $excludedRoles = [1, 2, 3];
+        $excludedRoles = [0];
         $roles = Role::whereNotIn('roleId', $excludedRoles)->get();
         return response()->json($roles);
        
