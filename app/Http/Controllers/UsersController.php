@@ -32,7 +32,7 @@ public function index(Request $request)
     $roleId = $request->query('role');
 
     // roles you want to exclude
-    $excludedRoles = [1, 2, 3];
+    $excludedRoles = [0];
 
     $query = User::with('user_role', 'state_coordinator.state', 'community_lead.lga_info.state')
           ->orderBy('id', 'desc')
