@@ -117,6 +117,7 @@ class EquipmentController extends Controller
 
         $equipments = Equipment::with('category', 'hub.states', 'hub.lgas', 'owner')
         ->where('hub', $hub->hubId)
+        ->where('serviceCategoryId', $request->serviceCategoryId)
         ->orderBy('equipmentId', 'desc')
         ->get();
 

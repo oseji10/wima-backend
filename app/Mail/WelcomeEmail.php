@@ -41,7 +41,7 @@ class WelcomeEmail extends Mailable implements ShouldQueue
     public function build()
     {
         return $this->view('emails.welcome-email')
-                    ->subject('Welcome to WIMA')
+                    ->subject('Welcome to MamaTrak By WIMA')
                     ->with([
                         'email' => $this->email,
                         'firstName' => $this->firstName,

@@ -1,11 +1,12 @@
 <?php
+
 namespace App\Mail;
 
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Queue\SerializesModels;
 
-class MembershipNotificationMail extends Mailable
+class BookingCustomerNotification extends Mailable
 {
     use Queueable, SerializesModels;
 
@@ -18,7 +19,7 @@ class MembershipNotificationMail extends Mailable
 
     public function build()
     {
-        return $this->subject('New Membership Application Received')
-                    ->view('emails.membership_notification');
+        return $this->subject('Service Booking Confirmation')
+                    ->view('emails.booking-customer-notification');
     }
 }

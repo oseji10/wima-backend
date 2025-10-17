@@ -546,7 +546,7 @@ $genderCounts = [
 
     try {
         // Start a database transaction
-        return DB::transaction(function () use ($request) {
+        $transactionResult = DB::transaction(function () use ($request) {
             // Generate a unique transaction reference
             $transactionReference = strtoupper(Str::random(2)) . mt_rand(1000000000, 9999999999);
 
@@ -576,14 +576,14 @@ $genderCounts = [
             //     throw new \Exception('No default project available');
             // }
 
-            // Fetch equipment to calculate totalCost (assuming equipment has 'price' field)
-            $equipment = \App\Models\Services::where('serviceId', $request->serviceId)
+            // Fetch service to calculate totalCost (assuming service has 'cost' field)
+            $service = \App\Models\Services::where('serviceId', $request->serviceId)
                 // ->where('hubId', $request->lgaId) // Ensure it's for the hub
                 ->first();
-            if (!$equipment) {
-                throw new \Exception('Equipment not available for the selected hub');
+            if (!$service) {
+                throw new \Exception('Service not available for the selected hub');
             }
-            $totalCost = $equipment->price * $request->quantity; // Assuming price per unit
+            $totalCost = $service->cost * $request->quantity; // Assuming price per unit
 
             // Create the transaction
             $transaction = Transactions::create([
@@ -599,7 +599,6 @@ $genderCounts = [
                 // transaction_commodity can be added if needed, e.g., based on service
             ]);
 
-     
             // Load related data for response
             $transaction->load([
                 'msp_info' => fn($query) => $query->select('mspId', 'name'),
@@ -609,16 +608,68 @@ $genderCounts = [
                 // 'transaction_commodity' => fn($query) => $query->select('transactionReference', 'commodityId')->with(['commodity' => fn($q) => $q->select('id', 'name')]),
             ]);
 
-            return response()->json([
-                'message' => 'Booking successful! Transaction created.',
-                'data' => $transaction,
-            ], 201);
+            return $transaction;
         });
+
+        // Send email notifications after successful transaction creation
+        $this->sendBookingNotifications($transactionResult, $request);
+
+        return response()->json([
+            'message' => 'Booking successful! Transaction created.',
+            'data' => $transactionResult,
+        ], 201);
     } catch (\Exception $e) {
         \Log::error('Error creating transaction: ' . $e->getMessage());
         return response()->json([
             'error' => $e->getMessage(),
         ], 500);
+    }
+}
+
+/**
+ * Send email notifications to national coordinator, state coordinator, and customer
+ */
+private function sendBookingNotifications($transaction, $request)
+{
+    // Fetch national coordinators (roleId 3)
+    $nationalCoordinators = \App\Models\User::where('role', 3)->pluck('email')->toArray();
+
+    // Fetch state coordinators (roleId 4) for the specific state from StateCordinators model
+    $stateCoordinators = \App\Models\StateCoordinators::where('stateId', $request->stateId)
+        ->join('users', 'state_coordinators.userId', '=', 'users.id') // Assuming table name 'state_cordinators' and field 'user_id'
+        ->where('users.role', 4)
+        ->pluck('users.email')
+        ->toArray();
+
+    // Collect all coordinator emails
+    $coordinatorEmails = array_merge($nationalCoordinators, $stateCoordinators);
+    $coordinatorEmails = array_unique(array_filter($coordinatorEmails)); // Remove duplicates and nulls
+
+    // Customer email (farmer)
+    $farmer = \App\Models\Farmers::where('farmerId', $transaction->farmer)->first();
+    $customerEmail = $farmer->email;
+
+    // Fetch service for email data
+    $service = \App\Models\Services::where('serviceId', $request->serviceId)->first();
+
+    // Prepare email data
+    $emailData = [
+        'transactionReference' => $transaction->transactionReference,
+        'farmerName' => $farmer->name,
+        'serviceName' => $service ? $service->serviceName : 'Service',
+        'totalCost' => $transaction->totalCost,
+        'quantity' => $request->quantity,
+        'hubName' => $transaction->hub_info->lga ?? 'Hub',
+    ];
+
+    // Send to coordinators
+    if (!empty($coordinatorEmails)) {
+        \Illuminate\Support\Facades\Mail::to($coordinatorEmails)->send(new \App\Mail\BookingNotification($emailData));
+    }
+
+    // Send to customer if email provided
+    if ($customerEmail) {
+        \Illuminate\Support\Facades\Mail::to($customerEmail)->send(new \App\Mail\BookingCustomerNotification($emailData));
     }
 }
 

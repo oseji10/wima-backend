@@ -1,5 +1,5 @@
 <h2>New WIMA Membership Application</h2>
-<p>A new membership application has been submitted. Here are the details:</p>
+<p>A new membership application has been received. Here are the details:</p>
 <p><strong>Name:</strong> {{ $data['fullName'] }} </p>
 <p><strong>Email:</strong> {{ $data['email'] }}</p>
 <p><strong>Phone:</strong> {{ $data['phoneNumber'] }}</p>
