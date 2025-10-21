@@ -90,6 +90,9 @@ Route::put('/membership-application/{id}/status', [MembershipController::class, 
 
     
 Route::get('/dashboard', [AnalyticsController::class, 'dashboard']);
+Route::get('/transaction-analysis', [AnalyticsController::class, 'transactionAnalysis']);
+Route::get('/farmers-by-state', [AnalyticsController::class, 'farmersByState']);
+Route::get('/latest-registered-members', [AnalyticsController::class, 'latestRegisteredMembers']);
         // Application routes
     Route::get('/equipment', [EquipmentController::class, 'index']);
     Route::post('/equipment', [EquipmentController::class, 'store']);

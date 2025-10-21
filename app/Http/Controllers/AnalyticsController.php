@@ -15,6 +15,9 @@ use App\Models\Agents;
 use App\Models\Equipment;
 use App\Models\Commodity;
 use App\Models\Transactions;
+use Illuminate\Support\Facades\DB;  
+use App\Models\Beneficiary;
+use App\Models\Membership;
 
 
 
@@ -159,5 +162,80 @@ public function dashboard()
 }
 
 
+
+public function transactionAnalysis(Request $request)
+{
+    $user = Auth::user();
+    $query = Transactions::query();
+
+    // --- If user role = 4, restrict to their LGA ---
+    if ($user->role === 4) {
+        $stateCoordinator = StateCoordinators::where('userId', $user->id)->first();
+
+        if ($stateCoordinator && $stateCoordinator->lga) {
+            $query->whereHas('hub_info', function($q) use ($stateCoordinator) {
+                $q->where('lga', $stateCoordinator->lga);
+            });
+        }
+    }
+
+    // --- Weekly totals ---
+    $weekly = (clone $query)
+        ->select(
+            DB::raw("YEAR(created_at) as year"),
+            DB::raw("WEEK(created_at) as week"),
+            DB::raw("SUM(totalCost) as total")
+        )
+        ->groupByRaw("YEAR(created_at), WEEK(created_at)")
+        ->orderByRaw("YEAR(created_at) DESC, WEEK(created_at) DESC")
+        ->get();
+
+    // --- Monthly totals ---
+    $monthly = (clone $query)
+        ->select(
+            DB::raw("YEAR(created_at) as year"),
+            DB::raw("MONTH(created_at) as month"),
+            DB::raw("SUM(totalCost) as total")
+        )
+        ->groupByRaw("YEAR(created_at), MONTH(created_at)")
+        ->orderByRaw("YEAR(created_at) DESC, MONTH(created_at) DESC")
+        ->get();
+
+    // --- Yearly totals ---
+    $yearly = (clone $query)
+        ->select(
+            DB::raw("YEAR(created_at) as year"),
+            DB::raw("SUM(totalCost) as total")
+        )
+        ->groupByRaw("YEAR(created_at)")
+        ->orderByRaw("YEAR(created_at) DESC")
+        ->get();
+
+    return response()->json([
+        'weekly' => $weekly,
+        'monthly' => $monthly,
+        'yearly' => $yearly,
+    ]);
+}
+
+public function farmersByState(Request $request)
+{
+    $farmersByState = Farmers::select('states.stateName', DB::raw('count(*) as total'))
+        ->join('hubs', 'farmers.hub', '=', 'hubs.hubId')
+        ->join('states', 'hubs.state', '=', 'states.stateId')
+        ->groupBy('states.stateName')
+        ->get();
+
+    return response()->json($farmersByState);
+
         
+}
+
+public function latestRegisteredMembers(Request $request)
+{
+    $latestMembers = Membership::orderBy('created_at', 'desc')->take(10)->get();
+    return response()->json($latestMembers);
+}
+
+
 }
