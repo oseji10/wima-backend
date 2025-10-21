@@ -51,4 +51,9 @@ class MSPs extends Model
     {
         return $this->belongsTo(Project::class, 'project', 'projectId');
     } 
+
+     public function hubs()
+    {
+        return $this->belongsTo(Hubs::class, 'hub', 'hubId');
+    }
 }

@@ -26,6 +26,7 @@ return new class extends Migration
                 ageBracket VARCHAR(255) NULL,
                 hub BIGINT UNSIGNED NULL,
                 msp VARCHAR(255) NULL,
+                project VARCHAR(255) NULL,
                 isDisabled VARCHAR(255) NULL,
                 disabilityDescription VARCHAR(255) NULL,
                 status VARCHAR(255) NOT NULL DEFAULT "active",

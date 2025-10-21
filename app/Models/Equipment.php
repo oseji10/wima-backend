@@ -29,6 +29,11 @@ class Equipment extends Model
         return $this->belongsTo(Hubs::class, 'hub', 'hubId');
     } 
 
+    public function hubs()
+    {
+        return $this->belongsTo(Hubs::class, 'hub', 'hubId');
+    } 
+
      public function owner()
     {
         return $this->belongsTo(User::class, 'owner', 'id');

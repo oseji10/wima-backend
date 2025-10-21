@@ -142,7 +142,7 @@ class AuthController extends Controller
         ]);
 
         return response()->json(['message' => 'Token refreshed'])
-            ->cookie('access_token', $newAccessToken, 15, null, null, true, true, false, 'strict')
+            ->cookie('access_token', $newAccessToken, 60, null, null, true, true, false, 'strict')
             ->cookie('refresh_token', $newRefreshToken, 14 * 24 * 60, null, null, true, true, false, 'strict');
     }
       

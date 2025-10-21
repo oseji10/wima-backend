@@ -24,4 +24,9 @@ class Beneficiary extends Model
     } 
 
 
+    public function hubs()
+    {
+        return $this->belongsToMany(Hub::class, 'hub', 'hubId');
+    }
+
 }

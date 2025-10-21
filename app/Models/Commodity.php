@@ -13,4 +13,9 @@ class Commodity extends Model
         'commodityId',
         'status',
     ];
+
+      public function hubs()
+    {
+        return $this->belongsTo(Hubs::class, 'hub', 'hubId');
+    } 
 }

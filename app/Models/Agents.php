@@ -19,5 +19,8 @@ class Agents extends Model
     ];
     // protected $primaryKey = 'agentId';
 
-   
+     public function hubs()
+    {
+        return $this->belongsTo(Hubs::class, 'hub', 'hubId');
+    } 
 }

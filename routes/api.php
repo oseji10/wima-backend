@@ -69,6 +69,8 @@ Route::put('/membership-application/{id}/status', [MembershipController::class, 
 
     Route::post('/book-service', [TransactionsController::class, 'bookService']);
 
+    
+
     Route::middleware(['auth.jwt'])->group(function () {
         Route::get('/user', function () {
             $user = auth()->user();
@@ -86,6 +88,8 @@ Route::put('/membership-application/{id}/status', [MembershipController::class, 
             ]);
         });
 
+    
+Route::get('/dashboard', [AnalyticsController::class, 'dashboard']);
         // Application routes
     Route::get('/equipment', [EquipmentController::class, 'index']);
     Route::post('/equipment', [EquipmentController::class, 'store']);

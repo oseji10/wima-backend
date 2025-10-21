@@ -300,6 +300,12 @@ public function farmerSearch(Request $request)
     return response()->json($search_result);
 }
 
-
+public function totalFarmers(){
+    $totalFarmers = Farmers::count();
+    return response()->json(['totalFarmers' => $totalFarmers]);
+}
     
+
+
+
 }
