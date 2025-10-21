@@ -180,7 +180,7 @@ class MembershipController extends Controller
         $existingEmail = Membership::where('email', $request->email)->first();
         if ($existingEmail) {
             return response()->json([
-                'success' => false,
+                'error' => false,
                 'message' => 'A membership application with this email already exists.'
             ], 409);
         }
