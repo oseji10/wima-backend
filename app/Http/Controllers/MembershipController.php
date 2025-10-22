@@ -176,15 +176,15 @@ class MembershipController extends Controller
     }
 
     // ✅ Optional: Check if email also exists (if email is not null)
-    if (!empty($request->email)) {
-        $existingEmail = Membership::where('email', $request->email)->first();
-        if ($existingEmail) {
-            return response()->json([
-                'error' => false,
-                'message' => 'A membership application with this email already exists.'
-            ], 409);
-        }
-    }
+    // if (!empty($request->email)) {
+    //     $existingEmail = Membership::where('email', $request->email)->first();
+    //     if ($existingEmail) {
+    //         return response()->json([
+    //             'success' => false,
+    //             'message' => 'A membership application with this email already exists.'
+    //         ], 409);
+    //     }
+    // }
 
     $data = $request->only([
         'membershipType',
@@ -225,8 +225,8 @@ class MembershipController extends Controller
 
     $membership = Membership::create($data);
 
-    // Notify all users with role 1 or 3
-    $users = User::whereIn('role', [1, 3])->get();
+    // Notify all users with role 1, 3, or 8
+    $users = User::whereIn('role', [1, 3, 8])->get();
     foreach ($users as $user) {
         Mail::to($user->email)->send(new MembershipNotificationMail($data));
     }
