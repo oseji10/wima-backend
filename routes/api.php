@@ -104,6 +104,8 @@ Route::get('/latest-registered-members', [AnalyticsController::class, 'latestReg
 
     Route::get('/users', [UsersController::class, 'index']);
     Route::post('/users', [UsersController::class, 'createUser']);
+    Route::put('/users/{id}', [UsersController::class, 'update']);
+    Route::delete('/users/{id}', [UsersController::class, 'destroy']);
 
     Route::get('/projects', [ProjectsController::class, 'index']);
     Route::post('/projects', [ProjectsController::class, 'store']);

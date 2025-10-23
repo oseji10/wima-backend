@@ -196,15 +196,15 @@ public function createUser(Request $request)
 }
 
     
-        public function update(Request $request, $staffId)  
+        public function update(Request $request, $id)  
 {
-        $staff = Staff::find($staffId);
-        if (!$staff) {
-            return response()->json(['message' => 'Staff not found'], 404);
+        $user = User::find($id);
+        if (!$user) {
+            return response()->json(['message' => 'User not found'], 404);
         }
 
-        $staff->update($request->all());
-        return response()->json($staff);
+        $user->update($request->all());
+        return response()->json($user);
     }
 
    public function destroy($id): JsonResponse
