@@ -255,7 +255,7 @@ public function store(Request $request)
 
         $farmer = Farmers::where('phoneNumber', $phoneNumber)->first();
 
-        return response()->json(['exists' => $farmer ? true : false, 'fullname' => $farmer ? $farmer->farmerFirstName . ' ' . $farmer->farmerLastName : null]);
+        return response()->json(['exists' => $farmer ? true : false, 'fullname' => $farmer ? $farmer->farmerFirstName . ' ' . $farmer->farmerLastName . ' ' . $farmer->farmerLastName : null, 'gender' => $farmer ? $farmer->gender : null, 'age' => $farmer ? $farmer->ageBracket : null, 'email' => $farmer ? $farmer->email : null]);
     }
     
 

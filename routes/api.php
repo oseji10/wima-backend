@@ -68,7 +68,7 @@ Route::put('/membership-application/{id}/status', [MembershipController::class, 
     Route::get('/load-equipment', [EquipmentController::class, 'searchEquipment2']);
 
     Route::post('/book-service', [TransactionsController::class, 'bookService']);
-
+    Route::get('/check-equipment-availability/{equipmentId}/{bookingDate}', [TransactionsController::class, 'checkEquipmentAvailability']);
     
 
     Route::middleware(['auth.jwt'])->group(function () {

@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Auth;
 class ServicesController extends Controller
 {
 public function priceAlert(){
-     $prices = Services::with('category', 'hub.lga_info')->orderBy('serviceId', 'desc')->get();
+     $prices = Services::with('category', 'hubs.lga_info')->orderBy('serviceId', 'desc')->get();
         return response()->json($prices);
 }
 

@@ -18,6 +18,7 @@ use Illuminate\Support\Facades\Http;
 use App\Models\StateCoordinators;
 use App\Models\CommunityLead;
 use Illuminate\Support\Facades\Auth;
+use App\Models\EquipmentBooking;
 
 
 class TransactionsController extends Controller
@@ -534,6 +535,9 @@ $genderCounts = [
         'serviceId' => ['required', 'string', 'exists:services,serviceId'],
         'equipmentId' => ['required', 'string', 'exists:equipment,equipmentId'],
         'quantity' => ['required', 'integer', 'min:1'],
+        'gender' => ['nullable', 'string', 'in:Male,Female'],
+        'age' => ['nullable', 'integer', 'min:0'],
+        'bookingDate' => ['nullable', 'date'],
         // 'projectId' => ['nullable', 'string', 'exists:projects,projectId'], // Optional, will default if not provided
     ]);
 
@@ -549,7 +553,9 @@ $genderCounts = [
         $transactionResult = DB::transaction(function () use ($request) {
             // Generate a unique transaction reference
             $transactionReference = strtoupper(Str::random(2)) . mt_rand(1000000000, 9999999999);
+            $farmerId = strtoupper(Str::random(2)) . mt_rand(100000000, 999999999);
 
+            $hub = \App\Models\Hubs::where('hubId', $request->lgaId)->first();
             // Handle farmer: find or create based on phoneNumber
             $farmer = \App\Models\Farmers::where('phoneNumber', $request->phoneNumber)->first();
             if (!$farmer) {
@@ -557,6 +563,14 @@ $genderCounts = [
                     'phoneNumber' => $request->phoneNumber,
                     'name' => $request->name,
                     'email' => $request->email,
+                    'farmerId' => $farmerId,
+                    'farmerFirstName' => explode(' ', $request->name)[0],
+                    'farmerLastName' => isset(explode(' ', $request->name)[1]) ? explode(' ', $request->name)[1] : '',
+                    'farmerOtherNames' => isset(explode(' ', $request->name)[2]) ? explode(' ', $request->name)[2] : '',
+                    'gender' => $request->gender ?? 'Not Specified',
+                    'status' => 'active',
+                    'hub' => $hub->hubId,
+                    'ageBracket' => $request->age,
                     // Add other default fields as needed, e.g., status: 'active'
                 ]);
             }
@@ -585,6 +599,15 @@ $genderCounts = [
             }
             $totalCost = $service->cost * $request->quantity; // Assuming price per unit
 
+            $isAvailable = EquipmentBooking::where('equipmentId', $request->equipmentId)
+                ->where('bookingDate', $request->bookingDate)
+                ->whereIn('status', ['reserved', 'booked'])
+                ->doesntExist();
+
+            if (!$isAvailable) {
+                return response()->json(['error' => 'Equipment not available on selected date.'], 422);
+            }
+
             // Create the transaction
             $transaction = Transactions::create([
                 // 'msp' => $mspId,
@@ -597,6 +620,13 @@ $genderCounts = [
                 'totalCost' => $totalCost,
                 'transactionReference' => $transactionReference,
                 // transaction_commodity can be added if needed, e.g., based on service
+            ]);
+
+            $booking = EquipmentBooking::create([
+                'transactionId' => $transaction->transactionId,
+                'equipmentId' => $request->equipmentId,
+                'bookingDate' => $request->bookingDate,
+                'status' => 'reserved',
             ]);
 
             // Load related data for response
@@ -673,5 +703,25 @@ private function sendBookingNotifications($transaction, $request)
     }
 }
 
+
+public function checkEquipmentAvailability(Request $request)
+    {
+        // $validator = Validator::make(['equipmentId' => $equipmentId, 'bookingDate' => $bookingDate], [
+        //     'equipmentId' => 'required|exists:equipment,equipmentId', // Assuming equipments table
+        //     'bookingDate' => 'required|date|after_or_equal:today',
+        // ]);
+
+        // if ($validator->fails()) {
+        //     return response()->json(['available' => false, 'errors' => $validator->errors()], 422);
+        // }
+
+        $isBooked = EquipmentBooking::where('equipmentId', $request->equipmentId)
+            ->where('bookingDate', $request->bookingDate)
+            ->where('status', 'reserved') 
+            ->orWhere('status', 'booked') // Exclude cancelled/completed if needed
+            ->first();
+
+        return response()->json(['available' => !$isBooked, 'status' => $isBooked->status ?? null]);
+    }
 
 }
