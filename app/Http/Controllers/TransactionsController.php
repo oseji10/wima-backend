@@ -120,29 +120,38 @@ public function analytics(Request $request)
 //    ->join('services', 'transaction_list.serviceId', '=', 'services.serviceId')
 //     ->groupBy('transaction_list.transactionReference', 'services.serviceName', 'services.measuringUnit', 'transaction_list.quantity', 'transaction_list.unitCost', 'transaction_list.created_at')
 //    ->get();
-$uniqueMsps = MSPs::select('msps.mspId', 'msps.gender', 'states.stateName as state')
-    // ->join('transactions', 'transactions.msp', '=', 'msps.mspId')
+$uniqueMsps = MSPs::select(
+        'msps.mspId',
+        'msps.gender',
+        'states.stateName as state',
+        'projects.projectName as projectName'
+    )
     ->join('hubs', 'msps.hub', '=', 'hubs.hubId')
     ->join('states', 'hubs.state', '=', 'states.stateId')
+    ->join('projects', 'msps.project', '=', 'projects.projectId')
     ->distinct()
     ->get();
 
 $genderCounts = [
-    'Male'   => $uniqueMsps->whereIn('gender', ['Male','male'])->count(),
-    'Female' => $uniqueMsps->whereIn('gender', ['Female','female'])->count(),
-    'State' => $uniqueMsps->groupBy('state')->map(function($group) {
-        return [
-            'Male'   => $group->whereIn('gender', ['Male','male'])->count(),
-            'Female' => $group->whereIn('gender', ['Female','female'])->count(),
-            'Total'  => $group->count(),
-        ];
+    'Male'   => $uniqueMsps->whereIn('gender', ['Male', 'male'])->count(),
+    'Female' => $uniqueMsps->whereIn('gender', ['Female', 'female'])->count(),
+    'StateProject' => $uniqueMsps->groupBy(['state', 'projectName'])->map(function($projects) {
+        return $projects->map(function($group) {
+            return [
+                'Male'   => $group->whereIn('gender', ['Male', 'male'])->count(),
+                'Female' => $group->whereIn('gender', ['Female', 'female'])->count(),
+                'Total'  => $group->count(),
+            ];
+        });
     })->toArray()
 ];
+
     $data = Transactions::select(
             'states.stateName as state',
             'lgas.lgaName as lga',
             'transactions.created_at',
             'services.serviceName as service',
+            'projects.projectName as projectName',
            \DB::raw("COUNT(DISTINCT CASE WHEN msps.gender IN ('Female','female') THEN msps.mspId END) as FemaleCount"),
         \DB::raw("COUNT(DISTINCT CASE WHEN msps.gender IN ('Male','male') THEN msps.mspId END) as MaleCount"),
         \DB::raw("SUM(totalCost) as totalCost")
@@ -154,7 +163,8 @@ $genderCounts = [
         ->join('services', 'transaction_list.serviceId', '=', 'services.serviceId') // join to services table
         ->join('farmers', 'transactions.farmer', '=', 'farmers.farmerId')
         ->join('msps', 'transactions.msp', '=', 'msps.mspId')
-        ->groupBy('states.stateName', 'lgas.lgaName', 'transactions.created_at', 'services.serviceName', 'farmers.gender')
+        ->join('projects', 'transactions.project', '=', 'projects.projectId')
+        ->groupBy('states.stateName', 'lgas.lgaName', 'transactions.created_at', 'services.serviceName', 'farmers.gender', 'projects.projectName')
         ->get()
         ->map(function($transaction) {
             return [
@@ -165,6 +175,7 @@ $genderCounts = [
                 'Male'      => $transaction->MaleCount,
                 'Female'    => $transaction->FemaleCount,
                 'Amount'    => $transaction->totalCost,
+                'Project'   => $transaction->projectName,
             ];
         });
 
