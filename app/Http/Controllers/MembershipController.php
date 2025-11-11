@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
     use App\Models\User;
 use App\Mail\MembershipNotificationMail;
+use App\Mail\ApplicationStatusMail;
 use Illuminate\Support\Facades\Mail;
 
 class MembershipController extends Controller
@@ -16,34 +17,26 @@ class MembershipController extends Controller
 {
     $perPage = $request->query('per_page', 10);
     $search = $request->query('search');
-    $state = $request->query('state');
-    $lga = $request->query('lga');
+    $membershipType = $request->query('membership_type');
+    $status = $request->query('status');
 
      $query = Membership::orderBy('id', 'desc');
     
-            // // if ($state) {
-            // //     $query->whereHas('subhubs.hub', function($q) use ($state) {
-            // //         $q->where('state', $state);
-            // //     });
-            // // }
+    
 
-            // // if ($lga) {
-            // //     $query->whereHas('subhubs.hub', function($q) use ($lga) {
-            // //         $q->where('lga', $lga);
-            // //     });
-            // // }
+            if ($membershipType) {
+                    $query->where('membershipType', $membershipType); 
+            }
 
-            // // if ($search) {
-            // //     $query->where(function($q) use ($search) {
-            // //         // $q->where('mspId', 'like', "%$search%")
-            // //         //   $q->whereHas('users', function($q) use ($search) {
-            // //               $q->where('farmerFirstName', 'like', "%$search%")
-            // //                 ->orWhere('farmerLastName', 'like', "%$search%")
-            // //                 ->orWhere('farmerOtherNames', 'like', "%$search%")
-            // //                 ->orWhere('phoneNumber', 'like', "%$search%"); // Added phone number search
-            // //         //   });
-            // //     });
-            // }
+           if ($status) {
+               $query->where('status', $status);
+           }
+
+               if ($search) {
+                    $query->where('fullName', 'like', "%$search%")
+                          ->orWhere('phoneNumber', 'like', "%$search%")
+                          ->orWhere('email', 'like', "%$search%"); 
+            }
 
     $membership_plans = $query->paginate($perPage);
     
@@ -175,16 +168,7 @@ class MembershipController extends Controller
         ], 409);
     }
 
-    // ✅ Optional: Check if email also exists (if email is not null)
-    // if (!empty($request->email)) {
-    //     $existingEmail = Membership::where('email', $request->email)->first();
-    //     if ($existingEmail) {
-    //         return response()->json([
-    //             'success' => false,
-    //             'message' => 'A membership application with this email already exists.'
-    //         ], 409);
-    //     }
-    // }
+ 
 
     $data = $request->only([
         'membershipType',
@@ -238,6 +222,38 @@ class MembershipController extends Controller
 }
 
 
+// public function updateStatus(Request $request, $id)
+// {
+//     $validator = Validator::make($request->all(), [
+//         'status' => 'required|in:pending,approved,rejected'
+//     ]);
+
+//     if ($validator->fails()) {
+//         return response()->json([
+//             'success' => false,
+//             'errors' => $validator->errors()
+//         ], 422);
+//     }
+
+//     $membership = Membership::find($id);
+//     if (!$membership) {
+//         return response()->json([
+//             'success' => false,
+//             'message' => 'Membership application not found'
+//         ], 404);
+//     }
+
+//     $membership->status = $request->status;
+//     $membership->save();
+
+//     return response()->json([
+//         'success' => true,
+//         'message' => 'Membership application status updated successfully'
+//     ]);
+
+// }
+
+
 public function updateStatus(Request $request, $id)
 {
     $validator = Validator::make($request->all(), [
@@ -259,14 +275,24 @@ public function updateStatus(Request $request, $id)
         ], 404);
     }
 
+    $oldStatus = $membership->status;
     $membership->status = $request->status;
     $membership->save();
+
+    // Send notification email to the applicant if email is provided
+    if ($membership->email && $oldStatus !== $request->status) {
+        try {
+            Mail::to($membership->email)->send(new ApplicationStatusMail($membership));
+        } catch (\Exception $e) {
+            // Log the error but don't fail the request
+            \Log::error('Failed to send status update email: ' . $e->getMessage());
+        }
+    }
 
     return response()->json([
         'success' => true,
         'message' => 'Membership application status updated successfully'
     ]);
-
 }
 
 
