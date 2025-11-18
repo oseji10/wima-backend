@@ -217,16 +217,16 @@ public function createUser(Request $request)
             }
 
             // Find the associated staff record
-            $staff = Staff::where('userId', $id)->first();
-            if (!$staff) {
-                return response()->json(['message' => 'Associated staff record not found'], 404);
-            }
+            // $staff = Staff::where('userId', $id)->first();
+            // if (!$staff) {
+            //     return response()->json(['message' => 'Associated staff record not found'], 404);
+            // }
 
             // Delete both records
-            $staff->delete();
+            // $staff->delete();
             $user->delete();
 
-            return response()->json(['message' => 'Staff deleted successfully']);
+            return response()->json(['message' => 'User deleted successfully']);
         }, 5);
     }
 }
