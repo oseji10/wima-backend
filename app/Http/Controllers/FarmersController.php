@@ -11,6 +11,7 @@ use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Auth;
 use App\Models\StateCoordinators;
 use App\Models\CommunityLead;
+use App\Services\ZohoBooks;
 
 class FarmersController extends Controller
 {
@@ -192,6 +193,51 @@ public function store(Request $request)
 
     return $this->farmerSearch($request);
 }
+
+
+
+public function zohotest(Request $request, ZohoBooks $zoho)
+{
+    // your local customer logic
+     $farmerId = strtoupper(Str::random(10));
+
+    // Prepare data
+    $data = $request->all();
+    $data['farmerId'] = $farmerId;
+    $farmers = Farmers::create($data);
+    
+
+    // create customer in zoho books
+
+
+    // return response()->json(['message' => 'Customer created and synced to Zoho']);
+$contactName = trim($farmers->farmerFirstName . ' ' . $farmers->farmerLastName . ' ' . $farmers->farmerOtherNames);
+
+// fallback if both names are empty
+if (empty($contactName)) {
+    $contactName = $farmers->company ?? 'Default Customer';
+}
+
+$zoho->createCustomer([
+    "contact_name" => $contactName,
+    "company_name" => $farmers->company ?? '',
+    "billing_address" => [
+        "address" => $farmers->address ?? '',
+    ],
+    "contact_persons" => [ 
+        [
+            "first_name" => $farmers->farmerFirstName,
+            "last_name" => $farmers->farmerLastName,
+            "email" => $farmers->email,
+            "phone" => $farmers->phoneNumber,
+        ]
+    ],
+    "contact_type" => "customer"
+]);
+
+
+}
+
 
 
 

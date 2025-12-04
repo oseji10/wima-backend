@@ -164,6 +164,9 @@ Route::get('/latest-registered-members', [AnalyticsController::class, 'latestReg
     // Route::post('/services', [FarmersController::class, 'store']);
     
     });
+
+    Route::post('/zohotest', [FarmersController::class, 'zohotest']);
+    
         Route::get('analytics/total-users', [AnalyticsController::class, 'getTotalBeneficiaries']);
         Route::options('{any}', function () {
             return response()->json([], 200);
