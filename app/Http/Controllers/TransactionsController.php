@@ -783,7 +783,7 @@ public function bookServiceAndZoho(Request $request, ZohoBooks $zoho)
         // Prepare Zoho Customer Payload
         // -----------------------------------
         $customerPayload = [
-            "contact_name" => $contactName . ' - ' . $farmerId,
+            "contact_name" => $contactName . ' - ' . $farmerId . ' - ' . $transactionReference,
             "company_name" => $farmer->company ?? '',
             "billing_address" => [
                 "city" => $lga->lgaName ?? "N/A",
