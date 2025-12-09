@@ -26,6 +26,7 @@ class Farmers extends Model
         'status',
         'hub',
         'project',
+        'zohoCustomerId',
     ];
     protected $primaryKey = 'id';
     protected $hidden = [

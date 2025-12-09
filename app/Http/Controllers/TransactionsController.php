@@ -19,7 +19,12 @@ use App\Models\StateCoordinators;
 use App\Models\CommunityLead;
 use Illuminate\Support\Facades\Auth;
 use App\Models\EquipmentBooking;
-
+use App\Models\Farmers;
+use App\Models\Hubs;
+use App\Services\ZohoBooks;
+use App\Models\Lgas;
+use App\Models\Services;
+use App\Models\State;
 
 class TransactionsController extends Controller
 {
@@ -413,30 +418,46 @@ $genderCounts = [
     }
     
 
-
-        public function updatePaymentMethod(Request $request, $transactionId)
-    {
-        $transaction = Transactions::find($transactionId);
-        if (!$transaction) {
-            return response()->json(['message' => 'Transaction not found'], 404);
-        }
-
-        $paymentMethod = $request->input('paymentMethod');
-        if (!$paymentMethod) {
-            return response()->json(['message' => 'Payment method is required'], 400);
-        }
-
-        $transaction->paymentMethod = $paymentMethod;
-        $transaction->transactionStatus = "PAID";
-        $transaction->save();
-
-        return response()->json([
-            'message' => 'Payment method updated successfully',
-            'transactionId' => $transaction->transactionId,
-            'paymentMethod' => $transaction->paymentMethod,
-            'transactionStatus' => $transaction->transactionStatus
-        ], 200);
+public function updatePaymentMethod(Request $request, $transactionId, ZohoBooks $zoho)
+{
+    $transaction = Transactions::with('farmer_info')->find($transactionId);
+    if (!$transaction) {
+        return response()->json(['message' => 'Transaction not found'], 404);
     }
+
+    $paymentMethod = $request->input('paymentMethod');
+    if (!$paymentMethod) {
+        return response()->json(['message' => 'Payment method is required'], 400);
+    }
+
+    $transaction->paymentMethod = $paymentMethod;
+    $transaction->transactionStatus = "PAID";
+    $transaction->save();
+
+    $payload = [
+        "customer_id" => $transaction->farmer_info->zohoCustomerId,
+        "payment_mode" => $paymentMethod,
+        "amount" => floatval($transaction->totalCost),
+        "date" => now()->toDateString(),
+        "invoices" => [
+            [
+                "invoice_id" => $transaction->zohoInvoiceId,
+                "amount_applied" => floatval($transaction->totalCost)
+            ]
+        ]
+    ];
+
+    $zohoInvoice = $zoho->recordPayment($payload);
+
+    return response()->json([
+        'message' => 'Payment method updated successfully',
+        'transactionId' => $transaction->transactionId,
+        'paymentMethod' => $transaction->paymentMethod,
+        'transactionStatus' => $transaction->transactionStatus,
+        'zohoInvoice' => $zohoInvoice
+    ], 200);
+}
+
 
 
            public function updateProjectType(Request $request, $transactionId)
@@ -666,6 +687,195 @@ $genderCounts = [
         ], 500);
     }
 }
+
+
+
+
+public function bookServiceAndZoho(Request $request, ZohoBooks $zoho)
+{
+    // -----------------------------
+    // 1. Validate Request
+    // -----------------------------
+    $validator = Validator::make($request->all(), [
+        'phoneNumber' => ['required', 'string', 'size:11'],
+        'agentId' => ['nullable', 'string', 'exists:agents,agentId'],
+        'name' => ['required', 'string', 'max:255'],
+        'email' => ['nullable', 'email', 'max:255'],
+        'stateId' => ['required', 'integer', 'exists:states,stateId'],
+        'lgaId' => ['required', 'integer', 'exists:hubs,hubId'], 
+        'serviceId' => ['required', 'string', 'exists:services,serviceId'],
+        'equipmentId' => ['required', 'string', 'exists:equipment,equipmentId'],
+        'quantity' => ['required', 'integer', 'min:1'],
+        'gender' => ['nullable', 'string', 'in:Male,Female'],
+        'age' => ['nullable', 'integer', 'min:0'],
+        'bookingDate' => ['nullable', 'date'],
+    ]);
+
+    if ($validator->fails()) {
+        return response()->json(['errors' => $validator->errors()], 422);
+    }
+
+    DB::beginTransaction();  // <<===== START TRANSACTION
+
+    try {
+
+        // -----------------------------------
+        // Generate IDs
+        // -----------------------------------
+        $farmerId = strtoupper(Str::random(10));
+        $transactionReference = strtoupper(Str::random(2)) . mt_rand(1000000000, 9999999999);
+
+        // -----------------------------------
+        // Fetch Hub & Service
+        // -----------------------------------
+        $hub = Hubs::where('hubId', $request->lgaId)->firstOrFail();
+        $service = Services::where('serviceId', $request->serviceId)->firstOrFail();
+
+        $totalCost = $service->cost * $request->quantity;
+
+        // -----------------------------------
+        // Create Farmer
+        // -----------------------------------
+        $farmer = Farmers::create([
+            'phoneNumber' => $request->phoneNumber,
+            'name' => $request->name,
+            'email' => $request->email,
+            'farmerId' => $farmerId,
+            'farmerFirstName' => explode(' ', $request->name)[0],
+            'farmerLastName' => explode(' ', $request->name)[1] ?? '',
+            'farmerOtherNames' => explode(' ', $request->name)[2] ?? '',
+            'gender' => $request->gender ?? 'Not Specified',
+            'status' => 'active',
+            'hub' => $hub->hubId,
+            'ageBracket' => $request->age,
+        ]);
+
+        // -----------------------------------
+        // Create Transaction
+        // -----------------------------------
+        $transaction = Transactions::create([
+            'farmer' => $farmer->farmerId,
+            'hub' => $hub->hubId,
+            'transactionType' => 'Service',
+            'paymentMethod' => 'Cash',
+            'transactionStatus' => 'PENDING',
+            'totalCost' => $totalCost,
+            'transactionReference' => $transactionReference,
+        ]);
+
+        // -----------------------------------
+        // Create Booking
+        // -----------------------------------
+        EquipmentBooking::create([
+            'transactionId' => $transaction->transactionId,
+            'equipmentId' => $request->equipmentId,
+            'bookingDate' => $request->bookingDate,
+            'status' => 'reserved',
+        ]);
+
+        // Fetch LGA & State
+        $lga = Lgas::where('lgaId', $hub->lga)->first();
+        $state = State::where('stateId', $hub->state)->first();
+
+        $contactName = $request->name ?: 'Default Customer';
+
+        // -----------------------------------
+        // Prepare Zoho Customer Payload
+        // -----------------------------------
+        $customerPayload = [
+            "contact_name" => $contactName . ' - ' . $farmerId,
+            "company_name" => $farmer->company ?? '',
+            "billing_address" => [
+                "city" => $lga->lgaName ?? "N/A",
+                "state" => $state->stateName ?? "N/A",
+                "country" => "Nigeria"
+            ],
+            "email" => $request->email ?? "",
+            "phone" => $farmer->phoneNumber,
+            "contact_type" => "customer",
+            "portal_status" => "enabled",
+            "contact_persons" => [
+                [
+                    "first_name" => $farmer->farmerFirstName,
+                    "last_name"  => $farmer->farmerLastName,
+                    "email"      => $request->email ?? "",
+                    "phone"      => $farmer->phoneNumber,
+                    "is_primary_contact" => true
+                ]
+            ]
+        ];
+
+        // -----------------------------------
+        // Call Zoho: Create Customer
+        // -----------------------------------
+        $zohoCustomer = $zoho->createCustomer($customerPayload);
+
+        if (!isset($zohoCustomer['contact']['contact_id'])) {
+            throw new \Exception("Zoho Customer creation failed");
+        }
+
+        $zohoCustomerId = $zohoCustomer['contact']['contact_id'];
+
+        // Update farmer with Zoho ID
+        $farmer->update([
+            'zohoCustomerId' => $zohoCustomerId
+        ]);
+
+        // -----------------------------------
+        // Create Zoho Invoice
+        // -----------------------------------
+        $invoicePayload = [
+            "customer_id" => $zohoCustomerId,
+            "date" => now()->toDateString(),
+            "due_date" => now()->addDays(7)->toDateString(),
+            "send" => "true",
+            "email" => "true",  // auto-email invoice
+            "line_items" => [
+                [
+                    "item_id" => $service->zohoId,
+                    "description" => $service->serviceName . ' for ' . $farmer->farmerFirstName . ' ' . $farmer->farmerLastName . ' at ' . $lga->lgaName,
+                    "rate" => $service->cost,
+                    "quantity" => $request->quantity
+                ]
+            ]
+        ];
+
+        $zohoInvoice = $zoho->createInvoice($invoicePayload);
+
+        if (!isset($zohoInvoice['invoice']['invoice_id'])) {
+            throw new \Exception("Zoho Invoice creation failed");
+        }
+
+        $zohoInvoiceId = $zohoInvoice['invoice']['invoice_id'];
+        $zoho->markInvoiceAsSent($zohoInvoiceId);
+        // Update transaction with Zoho invoice ID
+        $transaction->update([
+            'zohoInvoiceId' => $zohoInvoiceId
+        ]);
+
+        DB::commit();  // <<===== SUCCESS
+
+        return response()->json([
+            "message" => "Farmer, transaction, customer & invoice created successfully",
+            "farmer" => $farmer,
+            "transaction" => $transaction,
+            "zoho_customer" => $zohoCustomer,
+            "zoho_invoice" => $zohoInvoice
+        ]);
+
+    } catch (\Exception $e) {
+
+        DB::rollBack(); // <<===== ROLLBACK EVERYTHING
+
+        return response()->json([
+            'error' => $e->getMessage(),
+            'line' => $e->getLine(),
+        ], 500);
+    }
+}
+
+
+
 
 /**
  * Send email notifications to national coordinator, state coordinator, and customer

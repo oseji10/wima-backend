@@ -67,7 +67,7 @@ Route::put('/membership-application/{id}/status', [MembershipController::class, 
     Route::post('/load-services', [ServicesController::class, 'loadServices']);
     Route::get('/load-equipment', [EquipmentController::class, 'searchEquipment2']);
 
-    Route::post('/book-service', [TransactionsController::class, 'bookService']);
+    Route::post('/book-service', [TransactionsController::class, 'bookServiceAndZoho']);
     Route::get('/check-equipment-availability/{equipmentId}/{bookingDate}', [TransactionsController::class, 'checkEquipmentAvailability']);
     
 
@@ -165,7 +165,7 @@ Route::get('/latest-registered-members', [AnalyticsController::class, 'latestReg
     
     });
 
-    Route::post('/zohotest', [FarmersController::class, 'zohotest']);
+    Route::post('/zohotest', [TransactionsController::class, 'zohotest']);
     
         Route::get('analytics/total-users', [AnalyticsController::class, 'getTotalBeneficiaries']);
         Route::options('{any}', function () {

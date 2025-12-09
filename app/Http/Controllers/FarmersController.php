@@ -196,49 +196,120 @@ public function store(Request $request)
 
 
 
-public function zohotest(Request $request, ZohoBooks $zoho)
-{
-    // your local customer logic
-     $farmerId = strtoupper(Str::random(10));
+// public function zohotest(Request $request, ZohoBooks $zoho)
+// {
+//     // your local customer logic
+//      $farmerId = strtoupper(Str::random(10));
 
-    // Prepare data
-    $data = $request->all();
-    $data['farmerId'] = $farmerId;
-    $farmers = Farmers::create($data);
+//     // Prepare data
+//     $data = $request->all();
+//     $data['farmerId'] = $farmerId;
+//     $farmers = Farmers::create($data);
     
 
-    // create customer in zoho books
+//     // create customer in zoho books
 
 
-    // return response()->json(['message' => 'Customer created and synced to Zoho']);
-$contactName = trim($farmers->farmerFirstName . ' ' . $farmers->farmerLastName . ' ' . $farmers->farmerOtherNames);
+//     // return response()->json(['message' => 'Customer created and synced to Zoho']);
+// $contactName = trim($farmers->farmerFirstName . ' ' . $farmers->farmerLastName . ' ' . $farmers->farmerOtherNames);
 
-// fallback if both names are empty
-if (empty($contactName)) {
-    $contactName = $farmers->company ?? 'Default Customer';
-}
+// // fallback if both names are empty
+// if (empty($contactName)) {
+//     $contactName = $farmers->company ?? 'Default Customer';
+// }
 
-$zoho->createCustomer([
-    "contact_name" => $contactName,
-    "company_name" => $farmers->company ?? '',
-    "billing_address" => [
-        "address" => $farmers->address ?? '',
-    ],
-    "contact_persons" => [ 
-        [
-            "first_name" => $farmers->farmerFirstName,
-            "last_name" => $farmers->farmerLastName,
-            "email" => $farmers->email,
-            "phone" => $farmers->phoneNumber,
-        ]
-    ],
-    "contact_type" => "customer"
-]);
+// $zoho->createCustomer([
+//     "contact_name" => $contactName,
+//     "company_name" => $farmers->company ?? '',
+//     "billing_address" => [
+//         "address" => $farmers->address ?? '',
+//     ],
+//     "contact_persons" => [ 
+//         [
+//             "first_name" => $farmers->farmerFirstName,
+//             "last_name" => $farmers->farmerLastName,
+//             "email" => $farmers->email,
+//             "phone" => $farmers->phoneNumber,
+//         ]
+//     ],
+//     "contact_type" => "customer"
+// ]);
+
+// }
 
 
-}
+//  public function zohotest(Request $request, ZohoBooks $zoho)
+//     {
+//         //-------------------------
+//         // 1. Create Customer
+//         //-------------------------
+
+//          $farmerId = strtoupper(Str::random(10));
+
+//     // Prepare data
+//     $data = $request->all();
+//     $data['farmerId'] = $farmerId;
+//     $farmers = Farmers::create($data);
+    
+
+//     $contactName = trim($farmers->farmerFirstName . ' ' . $farmers->farmerLastName . ' ' . $farmers->farmerOtherNames);
+
+// // fallback if both names are empty
+// if (empty($contactName)) {
+//     $contactName = $farmers->company ?? 'Default Customer';
+// }
+
+//         $customerPayload = [
+//             "contact_name" => $contactName,
+//             "company_name" => $farmers->company ?? '',
+//             "billing_address" => [
+//                 "address" => "No. 45 Allen Avenue",
+//                 "city" => "Lagos",
+//                 "state" => "Lagos",
+                
+//                 "country" => "Nigeria"
+//             ],
+//             "email" => $farmers->email,
+//             "phone" => $farmers->phoneNumber
+//         ];
+
+//         $customer = $zoho->createCustomer($customerPayload);
+
+//         if (!isset($customer['contact']['contact_id'])) {
+//             return response()->json([
+//                 'error' => 'Customer creation failed',
+//                 'response' => $customer
+//             ], 422);
+//         }
+
+//         $customerId = $customer['contact']['contact_id'];
 
 
+//         //-------------------------
+//         // 2. Create Invoice
+//         //-------------------------
+//         $invoicePayload = [
+//             "customer_id" => $customerId,
+//             "date" => now()->toDateString(),
+//             "due_date" => now()->addDays(7)->toDateString(),
+
+//             "line_items" => [
+//                 [
+//                     "item_id" => "7224461000000134033",
+//                     "description" => "Corporate website design",
+//                     "rate" => 150000,
+//                     "quantity" => 1
+//                 ]
+//             ]
+//         ];
+
+//         $invoice = $zoho->createInvoice($invoicePayload);
+
+//         return response()->json([
+//             "customer" => $customer,
+//             "invoice" => $invoice
+//         ]);
+//     }
 
 
        public function update(Request $request)

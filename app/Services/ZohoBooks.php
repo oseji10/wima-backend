@@ -40,4 +40,25 @@ class ZohoBooks
 
         return Http::withHeaders($this->headers())->post($url, $data)->json();
     }
+
+    public function markInvoiceAsSent($invoiceId)
+{
+    $url = env('ZOHO_BASE') . "/invoices/{$invoiceId}/status/sent?organization_id=" . env('ZOHO_ORG_ID');
+    $response = Http::withHeaders($this->headers())
+        ->post($url);
+
+    return $response->json();
+}
+
+public function recordPayment($data)
+{
+    // $url = $this->baseUrl . "/customerpayments?organization_id={$this->orgId}";
+$url = env('ZOHO_BASE') . "/customerpayments?organization_id=" . env('ZOHO_ORG_ID');
+    $response = Http::withHeaders($this->headers())
+        ->post($url, $data);
+
+    return $response->json();
+}
+
+
 }
