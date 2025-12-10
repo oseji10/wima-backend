@@ -11,23 +11,23 @@ class LgaController extends Controller
     {
         $lgas = Lgas::all();
         return response()->json($lgas);
-       
+
     }
 
      public function getLgasByState(Request $request)
     {
         // Validate the request
         $request->validate([
-            'stateId' => 'required|string'
+            'state' => 'required|string'
         ]);
 
         try {
             // Option 1: If you're passing state name
             $state = State::where('stateId', $request->stateId)->first();
-            
+
             // Option 2: If you're passing state ID
             // $state = State::find($request->state);
-            
+
             if (!$state) {
                 return response()->json([
                     'success' => false,
@@ -55,7 +55,7 @@ class LgaController extends Controller
     }
 
 
-    
+
     public function getSubHubsByHubs(Request $request)
     {
         // Validate the request
@@ -66,10 +66,10 @@ class LgaController extends Controller
         try {
             // Option 1: If you're passing state name
             $hub = Hubs::where('hubId', $request->hubId)->first();
-            
+
             // Option 2: If you're passing state ID
             // $state = State::find($request->state);
-            
+
             if (!$hub) {
                 return response()->json([
                     'success' => false,
@@ -101,12 +101,12 @@ class LgaController extends Controller
     {
         // Directly get the data from the request
         $data = $request->all();
-    
+
         // Create a new user with the data (ensure that the fields are mass assignable in the model)
         $roles = Roles::create($data);
-    
+
         // Return a response, typically JSON
         return response()->json($roles, 201); // HTTP status code 201: Created
     }
-    
+
 }
