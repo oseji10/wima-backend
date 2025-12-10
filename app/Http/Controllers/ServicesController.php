@@ -20,10 +20,10 @@ public function priceAlert(){
 // {
 //     $perPage = $request->query('per_page', 10);
 //     $search = $request->query('search');
-    
+
 //     $query = Services::orderBy('serviceId', 'desc');
-      
-    
+
+
 //     // Search functionality
 //     if ($search) {
 //         $query->where(function($q) use ($search) {
@@ -34,11 +34,11 @@ public function priceAlert(){
 //                 ->orWhere('status', 'like', "%$search%");
 //         });
 //     }
-    
+
 //     $services = $query->paginate($perPage);
-    
+
 //     return response()->json($services);
-// }  
+// }
 
     public function index(Request $request)
     {
@@ -109,20 +109,20 @@ public function priceAlert(){
         }
 
         $services = $query->paginate($perPage);
-        
+
         return response()->json($services);
     }
 
-  
+
 
     public function store(Request $request)
     {
         // Directly get the data from the request
         $data = $request->all();
-    
+
         // Create a new user with the data (ensure that the fields are mass assignable in the model)
         $services = Services::create($data);
-    
+
         // Return a response, typically JSON
         return response()->json($services, 201); // HTTP status code 201: Created
     }
@@ -138,7 +138,7 @@ public function priceAlert(){
     }
 
     $services->update(['serviceName' => $request->serviceName, 'cost' => $request->cost, 'costPerUnit' => $request->costPerUnit, 'measuringUnit' => $request->measuringUnit]);
-    
+
     //  $services->load('states', 'lgas');
 
     return response()->json([
@@ -164,7 +164,7 @@ public function priceAlert(){
 
      public function loadServices(Request $request)
     {
-      
+
         $hub = Hubs::where('hubId', $request->hubId)->first();
 
         $services = Services::with('hubs.lgas')->orderBy('serviceId', 'desc')
@@ -172,7 +172,21 @@ public function priceAlert(){
         ->orderBy('serviceId', 'desc')
         ->get();
 
-       
+
+        return response()->json($services);
+    }
+
+    public function loadServices2(Request $request)
+    {
+
+        $hub = Hubs::where('lga', $request->hubId)->first();
+
+        $services = Services::with('hubs.lgas')->orderBy('serviceId', 'desc')
+        ->where('hub', $hub->hubId)
+        ->orderBy('serviceId', 'desc')
+        ->get();
+
+
         return response()->json($services);
     }
 }

@@ -92,13 +92,13 @@ class EquipmentController extends Controller
         }
 
         $farmers = $query->paginate($perPage);
-        
+
         return response()->json($farmers);
     }
 
     public function searchEquipment(Request $request)
     {
-      
+
         $hub = Hubs::where('lga', $request->hubId)->first();
 
         $equipments = Equipment::with('category', 'hub.states', 'hub.lgas', 'owner')
@@ -106,13 +106,13 @@ class EquipmentController extends Controller
         ->orderBy('equipmentId', 'desc')
         ->get();
 
-       
+
         return response()->json($equipments);
     }
 
-     public function searchEquipment2(Request $request)
+     public function searchEquipment1(Request $request)
     {
-      
+
         $hub = Hubs::where('hubId', $request->hubId)->first();
 
         $equipments = Equipment::with('category', 'hub.states', 'hub.lgas', 'owner')
@@ -121,7 +121,22 @@ class EquipmentController extends Controller
         ->orderBy('equipmentId', 'desc')
         ->get();
 
-       
+
+        return response()->json($equipments);
+    }
+
+     public function searchEquipment2(Request $request)
+    {
+
+        $hub = Hubs::where('lga', $request->hubId)->first();
+
+        $equipments = Equipment::with('category', 'hub.states', 'hub.lgas', 'owner')
+        ->where('hub', $hub->hubId)
+        ->where('serviceCategoryId', $request->serviceCategoryId)
+        ->orderBy('equipmentId', 'desc')
+        ->get();
+
+
         return response()->json($equipments);
     }
 
@@ -144,10 +159,10 @@ class EquipmentController extends Controller
     {
         // Directly get the data from the request
         $data = $request->all();
-    
+
         // Create a new cadre with the data (ensure that the fields are mass assignable in the model)
         $cadre = Cadre::create($data);
-    
+
         // Return a response, typically JSON
         return response()->json($cadre, 201); // HTTP status code 201: Created
     }
@@ -180,7 +195,7 @@ class EquipmentController extends Controller
         $cadre->delete();
         return response()->json(['message' => 'Cadre deleted successfully'], 200); // HTTP status code 200: OK
     }
-  
 
-   
+
+
 }

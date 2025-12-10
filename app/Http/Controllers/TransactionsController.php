@@ -114,7 +114,7 @@ public function index(Request $request)
 
 
         $transactions = $query->paginate($perPage);
-        
+
         return response()->json($transactions);
     }
 
@@ -190,113 +190,9 @@ $genderCounts = [
     'transactions' => $data // detailed breakdown
 ]);
 
-    // $data = Transactions::with([
-    //     'farmer_info',
-    //     'msp_info',
-    //     'hub_info.states',
-    //     'hub_info.lgas',
-    //     'transaction_list.services'
-    // ])
-    // // ->whereYear('created_at', 2025) // Optional: Filter by year for debugging
-    // ->get();
-
-    // $data = Transactions::with([
-    //     'farmer_info',
-    //     'msp_info',
-    //     'hub_info.states',
-    //     'hub_info.lgas',
-    //     'transaction_list.services'
-    // ])
-    // // ->whereYear('created_at', 2025) // Optional: Filter by year for debugging
-    // ->get();
-
-    // \Log::info('Total transactions fetched: ' . $data->count());
-
-    // $result = $data
-    //     ->groupBy(function ($transaction) {
-    //         return Carbon::parse($transaction->created_at)->format('M-y');
-    //     })
-    //     ->flatMap(function ($transactions, $monthYear) {
-    //         return $transactions->groupBy(function ($t) {
-    //             $state = optional(optional($t->hub_info)->states)->stateName ?? 'Unknown';
-    //             $lga = optional(optional($t->hub_info)->lgas)->lgaName ?? 'Unknown';
-    //             $service = optional(optional($t->transaction_list)->services)->serviceName ?? 'Unknown';
-    //             $key = $state . '-' . $lga . '-' . $service;
-    //             \Log::info('Grouping key: ' . $key);
-    //             return $key;
-    //         })->map(function ($group, $key) use ($monthYear) {
-    //             $maleCount = $group->filter(function ($t) {
-    //                 return optional($t->farmer_info)->gender === 'Male';
-    //             })->count();
-    //             $femaleCount = $group->filter(function ($t) {
-    //                 return optional($t->farmer_info)->gender === 'Female';
-    //             })->count();
-
-    //             $amount = $group->sum('totalCost');
-
-    //             [$state, $lga, $activity] = explode('-', $key);
-
-    //             return [
-    //                 "MonthYear" => $monthYear,
-    //                 "State"     => $state,
-    //                 "LGA"       => $lga,
-    //                 "Activity"  => $activity,
-    //                 "Male"      => $maleCount,
-    //                 "Female"    => $femaleCount,
-    //                 "Amount"    => $amount,
-    //             ];
-    //         });
-    //     })
-    //     ->values();
-
-    // \Log::info('Final result count: ' . $result->count());
-    // return response()->json($result);
 }
 
 
-//    public function analytics(Request $request)
-// {
-//     // return  $data = Transactions::with(['farmer_info', 'msp_info', 'hub_info.states', 'hub_info.lgas', 'transaction_list.services'])->get();
-// $data = Transactions::with([
-//         'farmer_info',
-//         'msp_info',
-//         'hub_info.states',
-//         'hub_info.lgas',
-//         'transaction_list.services'
-//     ])
-//     ->get()
-//     ->groupBy(function ($transaction) {
-//         // Group by month-year
-//         return Carbon::parse($transaction->created_at)->format('M-y');
-//     })
-//     ->flatMap(function ($transactions, $monthYear) {
-//         return $transactions->groupBy(function ($t) {
-//             return $t->hub_info->states->stateName . '-' . $t->hub_info->lgas->lgaName . '-' . $t->transaction_list->services->serviceName;
-//         })->map(function ($group, $key) use ($monthYear) {
-
-//             $maleCount = $group->where('farmer_info.gender', 'Male')->count();
-//             $femaleCount = $group->where('farmer_info.gender', 'Female')->count();
-
-//             $amount = $group->sum('totalCost');
-
-//             [$state, $lga, $activity] = explode('-', $key);
-
-//             return [
-//                 "MonthYear" => $monthYear,
-//                 "State"     => $state,
-//                 "LGA"       => $lga,
-//                 "Activity"  => $activity,
-//                 "Male"      => $maleCount,
-//                 "Female"    => $femaleCount,
-//                 "Amount"    => $amount, // keep numeric for charts
-//             ];
-//         });
-//     })
-//     ->values();        return response()->json($data);
-    
-// }
-    
-    
     public function show($transactionId)
     {
         $transaction = Transactions::find($transactionId);
@@ -306,89 +202,165 @@ $genderCounts = [
         return response()->json($transaction);
     }
 
-   public function store(Request $request)
-    {
-        // Define validation rules
-        $validator = Validator::make($request->all(), [
-            // 'msp' => ['required', 'string', 'exists:msps,mspId'],
-            'farmer' => ['required', 'string', 'exists:farmers,farmerId'],
-            'hub' => ['required', 'integer'],
-            'projectId' => ['required', 'string', 'exists:projects,projectId'],
-            'transactionType' => ['required', 'in:Service,Product'],
-            // 'paymentMethod' => ['required', 'in:Cash,Bank Transfer'],
-            // 'transactionStatus' => ['required', 'in:Paid,Pending'],
-            'totalCost' => ['required', 'numeric', 'min:0'],
-            'transaction_commodity' => ['array'],
-            'transaction_commodity.*' => ['integer', 'exists:commodities,commodityId'],
-        ]);
+   public function store(Request $request, ZohoBooks $zoho)
+{
+    // Validate
+    $validator = Validator::make($request->all(), [
+        'farmer' => ['required', 'string', 'exists:farmers,farmerId'],
+        'hub' => ['required', 'integer'],
+        'projectId' => ['required', 'string', 'exists:projects,projectId'],
+        // 'transactionType' => ['required', 'in:Service,Product'],
+        'totalCost' => ['required', 'numeric', 'min:0'],
+        'transaction_commodity' => ['array'],
+        'transaction_commodity.*' => ['integer', 'exists:commodities,commodityId'],
+        // 'quantity' => ['required', 'integer', 'min:1'], // Change this to
+'services' => ['required', 'array', 'min:1'],
+'services.*.serviceId' => ['required', 'string', 'exists:services,serviceId'],
+'services.*.quantity' => ['required', 'integer', 'min:1'],
+'services.*.equipmentId' => ['required', 'string', 'exists:equipment,equipmentId'],// You need this for invoice
+    ]);
 
-        
-        // Check for validation errors
-        if ($validator->fails()) {
-            return response()->json([
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-        
-        try {
-            // Start a database transaction
-            return DB::transaction(function () use ($request) {
-                // Generate a unique transaction reference
-                // $transactionReference = Str::uuid()->toString();
-                 $transactionReference = strtoupper(Str::random(2)) . mt_rand(1000000000, 9999999999);
-                
-                $hub = \App\Models\Hubs::where('lga', $request->hub)->first();
-                // Create the transaction
-                $transaction = Transactions::create([
-                    // 'transactionId' => $transactionId,
-                    // 'msp' => $request->msp,
-                    'farmer' => $request->farmer,
-                    'hub' => $hub->hubId,
-                    'project' => $request->projectId,
-                    'transactionType' => $request->transactionType,
-                    // 'paymentMethod' => $request->paymentMethod,
-                    'transactionStatus' => "PENDING",
-                    'totalCost' => $request->totalCost,
-                    'transactionReference' => $transactionReference,
-                ]);
-
-                // Attach commodities to the transaction (if provided)
-                if (!empty($request->transaction_commodity)) {
-                    $commodityData = array_map(function ($commodityId) use ($transactionReference) {
-                        return [
-                            'transactionReference' => $transactionReference,
-                            'commodityId' => $commodityId,
-                            'created_at' => now(),
-                            'updated_at' => now(),
-                        ];
-                    }, $request->transaction_commodity);
-                    TransactionCommodity::insert($commodityData);
-                }
-
-                // Load related data for response
-                $transaction->load([
-                    // 'msp_info' => fn($query) => $query->select('mspId'),
-                    'farmer_info' => fn($query) => $query->select('farmerId'),
-                    'hub_info' => fn($query) => $query->select('hubId'),
-                    'projects' => fn($query) => $query->select('projectId', 'projectName'),
-                    // 'transaction_commodity' => fn($query) => $query->select('transactionReference', 'commodityId')->with(['commodity' => fn($q) => $q->select('id', 'name')]),
-                ]);
-
-                return response()->json([
-                    'message' => 'Transaction created successfully',
-                    'data' => $transaction,
-                ], 201);
-            });
-        } catch (\Exception $e) {
-            \Log::error('Error creating transaction: ' . $e->getMessage());
-            return response()->json([
-                'error' => 'Failed to create transaction',
-            ], 500);
-        }
+    if ($validator->fails()) {
+        return response()->json(['errors' => $validator->errors()], 422);
     }
 
-    
-    
+    try {
+        return DB::transaction(function () use ($request, $zoho) {
+
+            $transactionReference = strtoupper(Str::random(2)) . mt_rand(1000000000, 9999999999);
+
+            // Fetch farmer
+            $farmer = Farmers::where('farmerId', $request->farmer)->first();
+
+            // Fetch hub
+            $hub = Hubs::where('lga', $request->hub)->first();
+
+            // Fetch LGA + State
+            $lga = Lgas::find($hub->lga);
+            $state = State::find($lga->stateId);
+
+            // Fetch service (IMPORTANT)
+
+
+            // Create transaction
+            $transaction = Transactions::create([
+                'farmer' => $request->farmer,
+                'hub' => $hub->hubId,
+                'project' => $request->projectId,
+                'transactionType' => $request->transactionType,
+                'transactionStatus' => "PENDING",
+                'totalCost' => $request->totalCost,
+                'transactionReference' => $transactionReference,
+            ]);
+
+            // Insert commodity list
+            if ($request->transaction_commodity) {
+                $commodityData = array_map(function ($id) use ($transactionReference) {
+                    return [
+                        'transactionReference' => $transactionReference,
+                        'commodityId' => $id,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ];
+                }, $request->transaction_commodity);
+
+                TransactionCommodity::insert($commodityData);
+            }
+
+            // -----------------------------------
+            // CREATE ZOHO CUSTOMER
+            // -----------------------------------
+            $contactName = $farmer->farmerFirstName . ' ' . $farmer->farmerLastName;
+
+            $customerPayload = [
+                "contact_name" => $contactName.' - '.$farmer->farmerId.' - '.$transactionReference,
+                "company_name" => $farmer->company ?? '',
+                "billing_address" => [
+                    "city" => $lga->lgaName ?? "N/A",
+                    "state" => $state->stateName ?? "N/A",
+                    "country" => "Nigeria",
+                ],
+                "email" => $request->email ?? "",
+                "phone" => $farmer->phoneNumber,
+                "contact_type" => "customer",
+                "portal_status" => "enabled",
+                "contact_persons" => [
+                    [
+                        "first_name" => $farmer->farmerFirstName,
+                        "last_name" => $farmer->farmerLastName,
+                        "email" => $request->email ?? "",
+                        "phone" => $farmer->phoneNumber,
+                        "is_primary_contact" => true
+                    ]
+                ]
+            ];
+
+            $zohoCustomer = $zoho->createCustomer($customerPayload);
+
+            if (!isset($zohoCustomer['contact']['contact_id'])) {
+                throw new \Exception("Zoho Customer creation failed");
+            }
+
+            $zohoCustomerId = $zohoCustomer['contact']['contact_id'];
+
+            $farmer->update(['zohoCustomerId' => $zohoCustomerId]);
+
+            // -----------------------------------
+            // CREATE ZOHO INVOICE
+            // -----------------------------------
+            $lineItems = [];
+foreach ($request->services as $serviceData) {
+    $service = Services::find($serviceData['serviceId']);
+    if ($service) {
+        $lineItems[] = [
+            "item_id" => $service->zohoId,
+            "description" =>
+                $service->serviceName . ' for ' .
+                $farmer->farmerFirstName . ' ' . $farmer->farmerLastName .
+                ' at ' . $lga->lgaName,
+            "rate" => $service->cost,
+            "quantity" => $serviceData['quantity'],
+        ];
+    }
+}
+
+$invoicePayload = [
+    "customer_id" => $zohoCustomerId,
+    "date" => now()->toDateString(),
+    "due_date" => now()->addDays(7)->toDateString(),
+    "send" => "true",
+    "email" => "true",
+    "line_items" => $lineItems
+];
+
+            $zohoInvoice = $zoho->createInvoice($invoicePayload);
+
+            if (!isset($zohoInvoice['invoice']['invoice_id'])) {
+                throw new \Exception("Zoho Invoice creation failed");
+            }
+
+            $zohoInvoiceId = $zohoInvoice['invoice']['invoice_id'];
+
+            $zoho->markInvoiceAsSent($zohoInvoiceId);
+
+            $transaction->update(['zohoInvoiceId' => $zohoInvoiceId]);
+
+            return response()->json([
+                'message' => 'Transaction created successfully',
+                'data' => $transaction,
+            ], 201);
+        });
+
+    } catch (\Exception $e) {
+        \Log::error("Error creating transaction: ".$e->getMessage());
+        return response()->json([
+            'error' => $e->getMessage(),
+        ], 500);
+    }
+}
+
+
+
     public function update(Request $request, $transactionId)
     {
         $transaction = Transactions::find($transactionId);
@@ -405,7 +377,7 @@ $genderCounts = [
             'transactionName' => $transaction->transactionName], 201); // HTTP status code 201: Created
 
     }
-    
+
     public function destroy($transactionId)
     {
         $transaction = Transactions::find($transactionId);
@@ -416,7 +388,7 @@ $genderCounts = [
         $transaction->delete();
         return response()->json(['message' => 'Transaction deleted successfully']);
     }
-    
+
 
 public function updatePaymentMethod(Request $request, $transactionId, ZohoBooks $zoho)
 {
@@ -483,210 +455,140 @@ public function updatePaymentMethod(Request $request, $transactionId, ZohoBooks 
     }
 
 
-    // public function store(Request $request)
-    // {
-    //     // Define validation rules
-    //     $validator = Validator::make($request->all(), [
-    //         // 'msp' => ['required', 'string', 'exists:msps,mspId'],
-    //         'farmer' => ['required', 'string', 'exists:farmers,farmerId'],
-    //         'hub' => ['required', 'integer'],
-    //         'projectId' => ['required', 'string', 'exists:projects,projectId'],
-    //         'transactionType' => ['required', 'in:Service,Product'],
-    //         // 'paymentMethod' => ['required', 'in:Cash,Bank Transfer'],
-    //         // 'transactionStatus' => ['required', 'in:Paid,Pending'],
-    //         'totalCost' => ['required', 'numeric', 'min:0'],
-    //         'transaction_commodity' => ['array'],
-    //         'transaction_commodity.*' => ['integer', 'exists:commodities,commodityId'],
-    //     ]);
 
-        
-    //     // Check for validation errors
-    //     if ($validator->fails()) {
-    //         return response()->json([
-    //             'errors' => $validator->errors(),
-    //         ], 422);
-    //     }
-        
-    //     try {
-    //         // Start a database transaction
-    //         return DB::transaction(function () use ($request) {
-    //             // Generate a unique transaction reference
-    //             // $transactionReference = Str::uuid()->toString();
-    //              $transactionReference = strtoupper(Str::random(2)) . mt_rand(1000000000, 9999999999);
-                
-    //             $hub = \App\Models\Hubs::where('lga', $request->hub)->first();
-    //             // Create the transaction
-    //             $transaction = Transactions::create([
-    //                 // 'transactionId' => $transactionId,
-    //                 // 'msp' => $request->msp,
-    //                 'farmer' => $request->farmer,
-    //                 'hub' => $hub->hubId,
-    //                 'project' => $request->projectId,
-    //                 'transactionType' => $request->transactionType,
-    //                 // 'paymentMethod' => $request->paymentMethod,
-    //                 'transactionStatus' => "PENDING",
-    //                 'totalCost' => $request->totalCost,
-    //                 'transactionReference' => $transactionReference,
-    //             ]);
+//     public function bookService(Request $request)
+// {
+//     // Define validation rules
+//     $validator = Validator::make($request->all(), [
+//         'phoneNumber' => ['required', 'string', 'size:11'],
+//         'agentId' => ['nullable', 'string', 'exists:agents,agentId'],
+//         'name' => ['required', 'string', 'max:255'],
+//         'email' => ['nullable', 'email', 'max:255'],
+//         'stateId' => ['required', 'integer', 'exists:states,stateId'],
+//         'lgaId' => ['required', 'integer', 'exists:hubs,hubId'], // Assuming lgaId is hubId
+//         'serviceId' => ['required', 'string', 'exists:services,serviceId'],
+//         'equipmentId' => ['required', 'string', 'exists:equipment,equipmentId'],
+//         'quantity' => ['required', 'integer', 'min:1'],
+//         'gender' => ['nullable', 'string', 'in:Male,Female'],
+//         'age' => ['nullable', 'integer', 'min:0'],
+//         'bookingDate' => ['nullable', 'date'],
+//         // 'projectId' => ['nullable', 'string', 'exists:projects,projectId'], // Optional, will default if not provided
+//     ]);
 
-          
+//     // Check for validation errors
+//     if ($validator->fails()) {
+//         return response()->json([
+//             'errors' => $validator->errors(),
+//         ], 422);
+//     }
 
-    //             // Load related data for response
-    //             $transaction->load([
-    //                 // 'msp_info' => fn($query) => $query->select('mspId'),
-    //                 'farmer_info' => fn($query) => $query->select('farmerId'),
-    //                 'hub_info' => fn($query) => $query->select('hubId'),
-    //                 'projects' => fn($query) => $query->select('projectId', 'projectName'),
-    //                 // 'transaction_commodity' => fn($query) => $query->select('transactionReference', 'commodityId')->with(['commodity' => fn($q) => $q->select('id', 'name')]),
-    //             ]);
+//     try {
+//         // Start a database transaction
+//         $transactionResult = DB::transaction(function () use ($request) {
+//             // Generate a unique transaction reference
+//             $transactionReference = strtoupper(Str::random(2)) . mt_rand(1000000000, 9999999999);
+//             $farmerId = strtoupper(Str::random(2)) . mt_rand(100000000, 999999999);
 
-    //             return response()->json([
-    //                 'message' => 'Transaction created successfully',
-    //                 'data' => $transaction,
-    //             ], 201);
-    //         });
-    //     } catch (\Exception $e) {
-    //         \Log::error('Error creating transaction: ' . $e->getMessage());
-    //         return response()->json([
-    //             'error' => 'Failed to create transaction',
-    //         ], 500);
-    //     }
-    // }
+//             $hub = \App\Models\Hubs::where('hubId', $request->lgaId)->first();
+//             // Handle farmer: find or create based on phoneNumber
+//             $farmer = \App\Models\Farmers::where('phoneNumber', $request->phoneNumber)->first();
+//             if (!$farmer) {
+//                 $farmer = \App\Models\Farmers::create([
+//                     'phoneNumber' => $request->phoneNumber,
+//                     'name' => $request->name,
+//                     'email' => $request->email,
+//                     'farmerId' => $farmerId,
+//                     'farmerFirstName' => explode(' ', $request->name)[0],
+//                     'farmerLastName' => isset(explode(' ', $request->name)[1]) ? explode(' ', $request->name)[1] : '',
+//                     'farmerOtherNames' => isset(explode(' ', $request->name)[2]) ? explode(' ', $request->name)[2] : '',
+//                     'gender' => $request->gender ?? 'Not Specified',
+//                     'status' => 'active',
+//                     'hub' => $hub->hubId,
+//                     'ageBracket' => $request->age,
+//                     // Add other default fields as needed, e.g., status: 'active'
+//                 ]);
+//             }
 
+//             // Get MSP if agentId provided
+//             $mspId = $request->agentId ? $request->agentId : null;
 
-    public function bookService(Request $request)
-{
-    // Define validation rules
-    $validator = Validator::make($request->all(), [
-        'phoneNumber' => ['required', 'string', 'size:11'],
-        'agentId' => ['nullable', 'string', 'exists:agents,agentId'],
-        'name' => ['required', 'string', 'max:255'],
-        'email' => ['nullable', 'email', 'max:255'],
-        'stateId' => ['required', 'integer', 'exists:states,stateId'],
-        'lgaId' => ['required', 'integer', 'exists:hubs,hubId'], // Assuming lgaId is hubId
-        'serviceId' => ['required', 'string', 'exists:services,serviceId'],
-        'equipmentId' => ['required', 'string', 'exists:equipment,equipmentId'],
-        'quantity' => ['required', 'integer', 'min:1'],
-        'gender' => ['nullable', 'string', 'in:Male,Female'],
-        'age' => ['nullable', 'integer', 'min:0'],
-        'bookingDate' => ['nullable', 'date'],
-        // 'projectId' => ['nullable', 'string', 'exists:projects,projectId'], // Optional, will default if not provided
-    ]);
+//             // Get hub (lgaId is hubId)
+//             $hub = \App\Models\Hubs::where('hubId', $request->lgaId)->first();
+//             if (!$hub) {
+//                 throw new \Exception('Hub not found');
+//             }
 
-    // Check for validation errors
-    if ($validator->fails()) {
-        return response()->json([
-            'errors' => $validator->errors(),
-        ], 422);
-    }
+//             // Default projectId if not provided
+//             // $projectId = $request->projectId ?? \App\Models\Project::first()->projectId ?? null;
+//             // if (!$projectId) {
+//             //     throw new \Exception('No default project available');
+//             // }
 
-    try {
-        // Start a database transaction
-        $transactionResult = DB::transaction(function () use ($request) {
-            // Generate a unique transaction reference
-            $transactionReference = strtoupper(Str::random(2)) . mt_rand(1000000000, 9999999999);
-            $farmerId = strtoupper(Str::random(2)) . mt_rand(100000000, 999999999);
+//             // Fetch service to calculate totalCost (assuming service has 'cost' field)
+//             $service = \App\Models\Services::where('serviceId', $request->serviceId)
+//                 // ->where('hubId', $request->lgaId) // Ensure it's for the hub
+//                 ->first();
+//             if (!$service) {
+//                 throw new \Exception('Service not available for the selected hub');
+//             }
+//             $totalCost = $service->cost * $request->quantity; // Assuming price per unit
 
-            $hub = \App\Models\Hubs::where('hubId', $request->lgaId)->first();
-            // Handle farmer: find or create based on phoneNumber
-            $farmer = \App\Models\Farmers::where('phoneNumber', $request->phoneNumber)->first();
-            if (!$farmer) {
-                $farmer = \App\Models\Farmers::create([
-                    'phoneNumber' => $request->phoneNumber,
-                    'name' => $request->name,
-                    'email' => $request->email,
-                    'farmerId' => $farmerId,
-                    'farmerFirstName' => explode(' ', $request->name)[0],
-                    'farmerLastName' => isset(explode(' ', $request->name)[1]) ? explode(' ', $request->name)[1] : '',
-                    'farmerOtherNames' => isset(explode(' ', $request->name)[2]) ? explode(' ', $request->name)[2] : '',
-                    'gender' => $request->gender ?? 'Not Specified',
-                    'status' => 'active',
-                    'hub' => $hub->hubId,
-                    'ageBracket' => $request->age,
-                    // Add other default fields as needed, e.g., status: 'active'
-                ]);
-            }
+//             $isAvailable = EquipmentBooking::where('equipmentId', $request->equipmentId)
+//                 ->where('bookingDate', $request->bookingDate)
+//                 ->whereIn('status', ['reserved', 'booked'])
+//                 ->doesntExist();
 
-            // Get MSP if agentId provided
-            $mspId = $request->agentId ? $request->agentId : null;
+//             if (!$isAvailable) {
+//                 return response()->json(['error' => 'Equipment not available on selected date.'], 422);
+//             }
 
-            // Get hub (lgaId is hubId)
-            $hub = \App\Models\Hubs::where('hubId', $request->lgaId)->first();
-            if (!$hub) {
-                throw new \Exception('Hub not found');
-            }
+//             // Create the transaction
+//             $transaction = Transactions::create([
+//                 // 'msp' => $mspId,
+//                 'farmer' => $farmer->farmerId,
+//                 'hub' => $hub->hubId,
+//                 // 'project' => $projectId,
+//                 'transactionType' => 'Service',
+//                 'paymentMethod' => 'Cash', // Default, or add to request if needed
+//                 'transactionStatus' => 'PENDING',
+//                 'totalCost' => $totalCost,
+//                 'transactionReference' => $transactionReference,
+//                 // transaction_commodity can be added if needed, e.g., based on service
+//             ]);
 
-            // Default projectId if not provided
-            // $projectId = $request->projectId ?? \App\Models\Project::first()->projectId ?? null;
-            // if (!$projectId) {
-            //     throw new \Exception('No default project available');
-            // }
+//             $booking = EquipmentBooking::create([
+//                 'transactionId' => $transaction->transactionId,
+//                 'equipmentId' => $request->equipmentId,
+//                 'bookingDate' => $request->bookingDate,
+//                 'status' => 'reserved',
+//             ]);
 
-            // Fetch service to calculate totalCost (assuming service has 'cost' field)
-            $service = \App\Models\Services::where('serviceId', $request->serviceId)
-                // ->where('hubId', $request->lgaId) // Ensure it's for the hub
-                ->first();
-            if (!$service) {
-                throw new \Exception('Service not available for the selected hub');
-            }
-            $totalCost = $service->cost * $request->quantity; // Assuming price per unit
+//             // Load related data for response
+//             $transaction->load([
+//                 'msp_info' => fn($query) => $query->select('mspId', 'name'),
+//                 'farmer_info' => fn($query) => $query->select('farmerId', 'farmerFirstName', 'phoneNumber'),
+//                 'hub_info' => fn($query) => $query->select('hubId', 'lga'),
+//                 // 'projects' => fn($query) => $query->select('projectId', 'projectName'),
+//                 // 'transaction_commodity' => fn($query) => $query->select('transactionReference', 'commodityId')->with(['commodity' => fn($q) => $q->select('id', 'name')]),
+//             ]);
 
-            $isAvailable = EquipmentBooking::where('equipmentId', $request->equipmentId)
-                ->where('bookingDate', $request->bookingDate)
-                ->whereIn('status', ['reserved', 'booked'])
-                ->doesntExist();
+//             return $transaction;
+//         });
 
-            if (!$isAvailable) {
-                return response()->json(['error' => 'Equipment not available on selected date.'], 422);
-            }
+//         // Send email notifications after successful transaction creation
+//         $this->sendBookingNotifications($transactionResult, $request);
 
-            // Create the transaction
-            $transaction = Transactions::create([
-                // 'msp' => $mspId,
-                'farmer' => $farmer->farmerId,
-                'hub' => $hub->hubId,
-                // 'project' => $projectId,
-                'transactionType' => 'Service',
-                'paymentMethod' => 'Cash', // Default, or add to request if needed
-                'transactionStatus' => 'PENDING',
-                'totalCost' => $totalCost,
-                'transactionReference' => $transactionReference,
-                // transaction_commodity can be added if needed, e.g., based on service
-            ]);
-
-            $booking = EquipmentBooking::create([
-                'transactionId' => $transaction->transactionId,
-                'equipmentId' => $request->equipmentId,
-                'bookingDate' => $request->bookingDate,
-                'status' => 'reserved',
-            ]);
-
-            // Load related data for response
-            $transaction->load([
-                'msp_info' => fn($query) => $query->select('mspId', 'name'),
-                'farmer_info' => fn($query) => $query->select('farmerId', 'farmerFirstName', 'phoneNumber'),
-                'hub_info' => fn($query) => $query->select('hubId', 'lga'),
-                // 'projects' => fn($query) => $query->select('projectId', 'projectName'),
-                // 'transaction_commodity' => fn($query) => $query->select('transactionReference', 'commodityId')->with(['commodity' => fn($q) => $q->select('id', 'name')]),
-            ]);
-
-            return $transaction;
-        });
-
-        // Send email notifications after successful transaction creation
-        $this->sendBookingNotifications($transactionResult, $request);
-
-        return response()->json([
-            'message' => 'Booking successful! Transaction created.',
-            'data' => $transactionResult,
-        ], 201);
-    } catch (\Exception $e) {
-        \Log::error('Error creating transaction: ' . $e->getMessage());
-        return response()->json([
-            'error' => $e->getMessage(),
-        ], 500);
-    }
-}
+//         return response()->json([
+//             'message' => 'Booking successful! Transaction created.',
+//             'data' => $transactionResult,
+//         ], 201);
+//     } catch (\Exception $e) {
+//         \Log::error('Error creating transaction: ' . $e->getMessage());
+//         return response()->json([
+//             'error' => $e->getMessage(),
+//         ], 500);
+//     }
+// }
 
 
 
@@ -702,7 +604,7 @@ public function bookServiceAndZoho(Request $request, ZohoBooks $zoho)
         'name' => ['required', 'string', 'max:255'],
         'email' => ['nullable', 'email', 'max:255'],
         'stateId' => ['required', 'integer', 'exists:states,stateId'],
-        'lgaId' => ['required', 'integer', 'exists:hubs,hubId'], 
+        'lgaId' => ['required', 'integer', 'exists:hubs,hubId'],
         'serviceId' => ['required', 'string', 'exists:services,serviceId'],
         'equipmentId' => ['required', 'string', 'exists:equipment,equipmentId'],
         'quantity' => ['required', 'integer', 'min:1'],
@@ -938,7 +840,7 @@ public function checkEquipmentAvailability(Request $request)
 
         $isBooked = EquipmentBooking::where('equipmentId', $request->equipmentId)
             ->where('bookingDate', $request->bookingDate)
-            ->where('status', 'reserved') 
+            ->where('status', 'reserved')
             ->orWhere('status', 'booked') // Exclude cancelled/completed if needed
             ->first();
 

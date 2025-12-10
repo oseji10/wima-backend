@@ -60,16 +60,18 @@ Route::put('/membership-application/{id}/status', [MembershipController::class, 
     Route::delete('/membership-application/{id}', [MembershipController::class, 'destroy']);
     Route::get('/roles', [RolesController::class, 'index']);
 
-    
+
     Route::get('/validate-agent/{agentId}', [AgentsController::class, 'validateAgentId']);
     Route::get('/validate-farmer/{phoneNumber}', [FarmersController::class, 'validateFarmer']);
-    
+
     Route::post('/load-services', [ServicesController::class, 'loadServices']);
-    Route::get('/load-equipment', [EquipmentController::class, 'searchEquipment2']);
+    Route::post('/load-services2', [ServicesController::class, 'loadServices2']);
+    Route::get('/load-equipment', [EquipmentController::class, 'searchEquipment1']);
+    Route::get('/load-equipment2', [EquipmentController::class, 'searchEquipment2']);
 
     Route::post('/book-service', [TransactionsController::class, 'bookServiceAndZoho']);
     Route::get('/check-equipment-availability/{equipmentId}/{bookingDate}', [TransactionsController::class, 'checkEquipmentAvailability']);
-    
+
 
     Route::middleware(['auth.jwt'])->group(function () {
         Route::get('/user', function () {
@@ -88,7 +90,7 @@ Route::put('/membership-application/{id}/status', [MembershipController::class, 
             ]);
         });
 
-    
+
 Route::get('/dashboard', [AnalyticsController::class, 'dashboard']);
 Route::get('/transaction-analysis', [AnalyticsController::class, 'transactionAnalysis']);
 Route::get('/farmers-by-state', [AnalyticsController::class, 'farmersByState']);
@@ -98,7 +100,7 @@ Route::get('/latest-registered-members', [AnalyticsController::class, 'latestReg
     Route::post('/equipment', [EquipmentController::class, 'store']);
     Route::get('/equipment/search', [EquipmentController::class, 'searchEquipment']);
 
-    
+
 
     Route::get('/equipment/categories', [EquipmentController::class, 'equipmentCategories']);
 
@@ -119,7 +121,7 @@ Route::get('/latest-registered-members', [AnalyticsController::class, 'latestReg
     Route::get('/states', [StateController::class, 'index']);
     Route::get('/lgas', [LgaController::class, 'getLgasByState']);
     Route::get('/subhubs', [LgaController::class, 'getSubHubsByHubs']);
-    
+
 
     Route::get('/hubs/active', [HubsController::class, 'activeHubs']);
     Route::get('/hubs', [HubsController::class, 'index']);
@@ -134,7 +136,7 @@ Route::get('/latest-registered-members', [AnalyticsController::class, 'latestReg
     Route::put('/farmers/{farmerId}', [FarmersController::class, 'update']);
     Route::delete('/farmers/{farmerId}', [FarmersController::class, 'destroy']);
     Route::get('/farmers/search-2', [FarmersController::class, 'farmerSearch']);
-    
+
 
     Route::get('/msps', [MSPsController::class, 'index']);
     Route::post('/msps', [MSPsController::class, 'store']);
@@ -162,16 +164,16 @@ Route::get('/latest-registered-members', [AnalyticsController::class, 'latestReg
 
     Route::get('/farmers/search', [FarmersController::class, 'search']);
     // Route::post('/services', [FarmersController::class, 'store']);
-    
+
     });
 
     Route::post('/zohotest', [TransactionsController::class, 'zohotest']);
-    
+
         Route::get('analytics/total-users', [AnalyticsController::class, 'getTotalBeneficiaries']);
         Route::options('{any}', function () {
             return response()->json([], 200);
         })->where('any', '.*');
-       
+
 
         // routes/web.php
 Route::get('/equipment_proofs/{filename}', function ($filename) {
