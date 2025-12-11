@@ -38,86 +38,96 @@ class TransactionsController extends Controller
 
 
 public function index(Request $request)
-    {
-        $user = Auth::user();
-        $perPage = $request->query('per_page', 10);
-        $search = $request->query('search');
-        $state = $request->query('state');
-        $lga = $request->query('lga');
-        $project = $request->query('projectId');
+{
+    $user = Auth::user();
+    $perPage = $request->query('per_page', 10);
+    $search = $request->query('search');
+    $state = $request->query('state');
+    $lga = $request->query('lga');
+    $project = $request->query('projectId');
 
-        $query = Transactions::with('transaction_list', 'transaction_commodity.commodities', 'farmer_info', 'msp_info.users', 'hub_info.states', 'hub_info.lgas', 'active_states', 'projects')
-                            ->orderBy('transactionId', 'desc');
+    $query = Transactions::with('transaction_list', 'transaction_commodity.commodities', 'farmer_info', 'msp_info.users', 'hub_info.states', 'hub_info.lgas', 'active_states', 'projects')
+                        ->orderBy('transactionId', 'desc');
 
-        $state_coordinators = StateCoordinators::where('userId', $user->id)->first();
-        $community_lead = CommunityLead::where('userId', $user->id)->first();
+    $state_coordinators = StateCoordinators::where('userId', $user->id)->first();
+    $community_lead = CommunityLead::where('userId', $user->id)->first();
 
-        // Role-based filtering
-        if ($user->role === 4) {
-            // State coordinators see only their state's records
-            $query->whereHas('hub_info', function($q) use ($state_coordinators) {
-                $q->where('state', $state_coordinators->stateId);
-            });
+    // Role-based filtering
+    if ($user->role === "4") {
+        // State coordinators see only their state's records
+        $query->whereHas('hub_info', function($q) use ($state_coordinators) {
+            $q->where('state', $state_coordinators->stateId);
+        });
 
-            if ($lga) {
-                $query->whereHas('hub_info', function($q) use ($lga) {
-                    $q->where('lga', $lga);
-                });
-            }
-        } elseif ($user->role === 5) {
-            // Community leads see only their community's records
-            $query->whereHas('hub_info', function($q) use ($community_lead) {
-                $q->where('lga', $community_lead->lga);
-            });
-        } elseif ($user->role === 1 || $user->role === 3) {
-            // Admin and National Coordinator can filter by state and LGA
-            if ($state) {
-                $query->whereHas('hub_info', function($q) use ($state) {
-                    $q->where('state', $state);
-                });
-            }
-            if ($lga) {
-                $query->whereHas('hub_info', function($q) use ($lga) {
-                    $q->where('lga', $lga);
-                });
-            }
-        }
-
-        // Project filtering for all roles
-        if ($project) {
-            $query->where('project', $project);
-        }
-
-        // Search functionality with role-based restrictions
-        if ($search) {
-            $query->where(function($q) use ($search, $user, $state_coordinators, $community_lead) {
-                // Apply state or LGA restriction for search
-                if ($user->role === 4) {
-                    $q->whereHas('hub_info', function($hq) use ($state_coordinators) {
-                        $hq->where('state', $state_coordinators->stateId);
-                    });
-                } elseif ($user->role === 5) {
-                    $q->whereHas('hub_info', function($hq) use ($community_lead) {
-                        $hq->where('lga', $community_lead->lga);
-                    });
-                }
-                // Search conditions
-                $q->where(function($sq) use ($search) {
-                    $sq->where('farmerFirstName', 'like', "%$search%")
-                       ->orWhere('farmerLastName', 'like', "%$search%")
-                       ->orWhere('farmerOtherNames', 'like', "%$search%")
-                       ->orWhereRaw("CONCAT(farmerFirstName, ' ', farmerLastName, ' ', farmerOtherNames) LIKE ?", ["%{$search}%"])
-                       ->orWhere('phoneNumber', 'like', "%$search%");
-                });
+        if ($lga) {
+            $query->whereHas('hub_info', function($q) use ($lga) {
+                $q->where('lga', $lga);
             });
         }
-
-
-        $transactions = $query->paginate($perPage);
-
-        return response()->json($transactions);
+    } elseif ($user->role === 5) {
+        // Community leads see only their community's records
+        $query->whereHas('hub_info', function($q) use ($community_lead) {
+            $q->where('lga', $community_lead->lga);
+        });
+    } elseif ($user->role === "1" || $user->role === "3") {
+        // Admin and National Coordinator can filter by state and LGA
+        if ($state) {
+            $query->whereHas('hub_info', function($q) use ($state) {
+                $q->where('state', $state);
+            });
+        }
+        if ($lga) {
+            $query->whereHas('hub_info', function($q) use ($lga) {
+                $q->where('lga', $lga);
+            });
+        }
     }
 
+    // Project filtering for all roles
+    if ($project) {
+        $query->where('project', $project);
+    }
+
+    // Search functionality with role-based restrictions
+    if ($search) {
+        $query->where(function($q) use ($search, $user, $state_coordinators, $community_lead) {
+            // Apply state or LGA restriction for search
+            if ($user->role === 4) {
+                $q->whereHas('hub_info', function($hq) use ($state_coordinators) {
+                    $hq->where('state', $state_coordinators->stateId);
+                });
+            } elseif ($user->role === 5) {
+                $q->whereHas('hub_info', function($hq) use ($community_lead) {
+                    $hq->where('lga', $community_lead->lga);
+                });
+            }
+
+            // Search conditions - FIXED: Search through relationships
+            $q->where(function($sq) use ($search) {
+                $sq->where('transactionReference', 'like', "%$search%")
+                   ->orWhere('transactionId', 'like', "%$search%")
+                   ->orWhereHas('farmer_info', function($fq) use ($search) {
+                       $fq->where('farmerFirstName', 'like', "%$search%")
+                          ->orWhere('farmerLastName', 'like', "%$search%")
+                          ->orWhere('farmerOtherNames', 'like', "%$search%")
+                          ->orWhere('phoneNumber', 'like', "%$search%")
+                          ->orWhere('farmerId', 'like', "%$search%")
+                          ->orWhereRaw("CONCAT(farmerFirstName, ' ', farmerLastName) LIKE ?", ["%{$search}%"]);
+                   })
+                   ->orWhereHas('msp_info.users', function($mq) use ($search) {
+                       $mq->where('firstName', 'like', "%$search%")
+                          ->orWhere('lastName', 'like', "%$search%")
+                          ->orWhere('phoneNumber', 'like', "%$search%")
+                          ->orWhereRaw("CONCAT(firstName, ' ', lastName) LIKE ?", ["%{$search}%"]);
+                   });
+            });
+        });
+    }
+
+    $transactions = $query->paginate($perPage);
+
+    return response()->json($transactions);
+}
 
 public function analytics(Request $request)
 {
