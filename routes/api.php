@@ -156,6 +156,7 @@ Route::get('/latest-registered-members', [AnalyticsController::class, 'latestReg
     Route::post('/transactions', [TransactionsController::class, 'store']);
     Route::put('/transactions/{transactionId}/confirm', [TransactionsController::class, 'updatePaymentMethod']);
     Route::put('/transactions/{transactionId}/project-type', [TransactionsController::class, 'updateProjectType']);
+    Route::post('/transactions/upload-bulk', [TransactionsController::class, 'uploadBulk']);
 
     Route::get('/agents', [AgentsController::class, 'index']);
     Route::post('/agents', [AgentsController::class, 'store']);

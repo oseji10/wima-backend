@@ -25,6 +25,15 @@ use App\Services\ZohoBooks;
 use App\Models\Lgas;
 use App\Models\Services;
 use App\Models\State;
+use App\Models\User;
+// use App\Models\MSPs;
+
+use Maatwebsite\Excel\Facades\Excel;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Hash;
+use App\Imports\BulkMspFarmerImport;
+use PhpOffice\PhpSpreadsheet\IOFactory;
+
 
 class TransactionsController extends Controller
 {
@@ -233,6 +242,7 @@ $genderCounts = [
 ]);
 
 }
+
 
 
     public function show($transactionId)
@@ -819,7 +829,7 @@ public function bookServiceAndZoho(Request $request, ZohoBooks $zoho)
 }
 
 
-
+  
 
 /**
  * Send email notifications to national coordinator, state coordinator, and customer
@@ -889,4 +899,287 @@ public function checkEquipmentAvailability(Request $request)
         return response()->json(['available' => !$isBooked, 'status' => $isBooked->status ?? null]);
     }
 
+ 
+
+
+
+public function uploadBulk(Request $request)
+{
+    $request->validate([
+        'file'       => 'required|file|mimes:xls,xlsx|max:10240',
+        'projectId'  => 'required|integer|exists:projects,projectId',
+        // stateId & hubId no longer required from payload
+    ]);
+
+    $projectId = $request->projectId;
+    $addedBy   = auth()->id();
+
+    $file = $request->file('file');
+    $filePath = $file->getRealPath();
+
+    try {
+        $spreadsheet = IOFactory::load($filePath);
+        $worksheet   = $spreadsheet->getActiveSheet();
+
+        $highestRow    = $worksheet->getHighestRow();
+        if ($highestRow <= 1) {
+            return response()->json(['error' => 'No data rows found'], 422);
+        }
+
+        $dataArray = $worksheet->toArray(null, true, true, true);
+        $dataArray = array_filter($dataArray, fn($row) => !empty(array_filter($row)));
+
+        if (count($dataArray) <= 1) {
+            return response()->json(['error' => 'No valid data rows after filtering'], 422);
+        }
+
+        $rows    = collect($dataArray);
+        $headers = array_values($rows->first());
+
+        $requiredColumns = [
+            'mspFirstName', 'mspLastName',
+            'farmerFirstName', 'farmerSurname', 'farmerPhone', 'farmerGender', 'ageBracket',
+            'serviceCode', 'serviceName', 'serviceLabel', 'quantity',
+            'state', 'lga', 'serviceDate',  'hubId' // ← added
+        ];
+
+        $missing = array_diff($requiredColumns, $headers);
+        if ($missing) {
+            return response()->json([
+                'error' => 'Missing required columns: ' . implode(', ', $missing),
+                'found' => $headers,
+            ], 422);
+        }
+
+        $dataRows = $rows->slice(1);
+
+        DB::beginTransaction();
+
+        $processed = 0;
+
+        $groupedRows = $dataRows->groupBy(function ($rowData) use ($headers) {
+            $row = array_combine($headers, array_values($rowData));
+            return trim($row['mspFirstName']) . '|' .
+                   trim($row['mspLastName']) . '|' .
+                   trim($row['farmerSurname']) . '|' .
+                   trim($row['farmerFirstName']) . '|' .
+                   trim($row['farmerPhone']) . '|' .
+                   ($row['serviceDate'] ?? '');
+        });
+
+        foreach ($groupedRows as $groupKey => $group) {
+            $firstRow  = array_combine($headers, array_values($group->first()));
+            $rowNumber = $group->keys()->first() + 2; // more accurate row number
+
+            // ── Resolve Hub from Excel state + lga ───────────────────────────────
+            $stateName = trim($firstRow['state'] ?? '');
+            $lgaName   = trim($firstRow['lga'] ?? '');
+            $lgaId = trim($firstRow['hubId'] ?? '');
+
+            // $hub = Hubs::whereHas('lga', function ($q) use ($lgaName) {
+            //         $q->where('lga', $lgaName); // adjust column name if needed
+            //     })
+            //     ->whereHas('state', function ($q) use ($stateName) {
+            //         $q->where('state', $stateName);
+            //     })
+            //     ->first();
+
+                $hub = Hubs::where('hubId', $lgaId)->first();
+
+            if (!$hub) {
+                throw new \Exception("Hub not found for state '$stateName' / LGA '$lgaName' in row $rowNumber");
+            }
+
+            // ── Parse serviceDate (Excel serial number) ──────────────────────────
+         $excelDate = $firstRow['serviceDate'] ?? null;
+
+if (!$excelDate) {
+    throw new \Exception("Missing serviceDate in row $rowNumber");
+}
+
+try {
+    if (is_numeric($excelDate)) {
+        $serviceDate = Carbon::instance(
+            Date::excelToDateTimeObject($excelDate)
+        );
+    } else {
+        $serviceDate = Carbon::parse($excelDate);
+    }
+} catch (\Throwable $e) {
+    throw new \Exception("Invalid serviceDate format in row $rowNumber");
+}
+
+            // ── MSP handling (unchanged logic) ───────────────────────────────────
+            $mspFirstName  = trim($firstRow['mspFirstName']);
+            $mspLastName   = trim($firstRow['mspLastName']);
+            $mspOtherNames = trim($firstRow['mspOtherNames'] ?? '');
+            $mspGender     = trim($firstRow['mspGender'] ?? 'Unknown');
+
+            $existingUser = User::where('firstName', $mspFirstName)
+                ->where('lastName', $mspLastName)
+                ->first();
+
+            $mspId = null;
+
+            if ($existingUser) {
+                $msp = MSPs::where('userId', $existingUser->id)->first();
+                if ($msp) $mspId = $msp->mspId;
+            }
+
+            if (!$mspId) {
+                $user = User::create([
+                    'firstName'   => $mspFirstName,
+                    'lastName'    => $mspLastName,
+                    'otherNames'  => $mspOtherNames,
+                    'email'       => Str::uuid() . '@wimanigeria.com',
+                    'password'    => Hash::make('password'),
+                    'role'        => 2,
+                ]);
+
+                do {
+                    $mspId = Str::upper(Str::random(10));
+                } while (MSPs::where('mspId', $mspId)->exists());
+
+                MSPs::create([
+                    'mspId'     => $mspId,
+                    'hub'       => $hub->hubId,
+                    'gender'    => $mspGender,
+                    'userId'    => $user->id,
+                    'project'   => $projectId,
+                    'addedBy'   => $addedBy,
+                    // 'stateId'   => $hub->state_id ?? $stateId, // fallback if needed
+                ]);
+            }
+
+            // ── Farmer handling (unchanged) ──────────────────────────────────────
+            $rawPhone = trim($firstRow['farmerPhone']);
+            $phoneNumber = ltrim($rawPhone, "'");
+            $phoneNumber = preg_replace('/\D/', '', $phoneNumber);
+
+            if (strlen($phoneNumber) < 10 || strlen($phoneNumber) > 11) {
+                throw new \Exception("Invalid phone in row $rowNumber: $rawPhone");
+            }
+
+            $farmer = Farmers::where('farmerFirstName', trim($firstRow['farmerFirstName']))
+                ->where('farmerLastName', trim($firstRow['farmerSurname']))
+                ->where('phoneNumber', $phoneNumber)
+                ->where('hub', $hub->hubId)
+                ->first();
+
+            if (!$farmer) {
+                do {
+                    $farmerId = Str::upper(Str::random(10));
+                } while (Farmers::where('farmerId', $farmerId)->exists());
+
+                $farmer = Farmers::create([
+                    'farmerId'         => $farmerId,
+                    'farmerFirstName'  => trim($firstRow['farmerFirstName']),
+                    'farmerLastName'   => trim($firstRow['farmerSurname']),
+                    'farmerOtherNames' => trim($firstRow['farmerOtherNames'] ?? ''),
+                    'phoneNumber'      => $phoneNumber,
+                    'gender'           => trim($firstRow['farmerGender']),
+                    'mspId'            => $mspId,
+                    'ageBracket'       => trim($firstRow['ageBracket']),
+                    'hub'              => $hub->hubId,
+                    'project'          => $projectId,
+                ]);
+            }
+
+            // ── Transaction items with service lookup ────────────────────────────
+            $totalCost = 0;
+            $transactionItems = [];
+
+            foreach ($group as $itemData) {
+                $item = array_combine($headers, array_values($itemData));
+
+                $serviceCode = (int) trim($item['serviceCode'] ?? 0);
+                if ($serviceCode <= 0) {
+                    throw new \Exception("Invalid serviceCode in row $rowNumber");
+                }
+
+                $service = Services::where('serviceCategoryId', $serviceCode)->first(); // ← adjust column if not 'code'
+
+                if (!$service) {
+                    throw new \Exception("Service not found for code $serviceCode in row $rowNumber");
+                }
+
+                $quantity  = (int) ($item['quantity'] ?? 1);
+                $itemTotal = (float) ($item['totalCost'] ?? 0);
+                $unitPrice = $quantity > 0 ? round($itemTotal / $quantity, 2) : 0;
+
+                $totalCost += $itemTotal;
+
+                $transactionItems[] = [
+                    'serviceId'       => $service->serviceId, // or $service->id
+                    'quantity'        => $quantity,
+                    // 'unitCost'     => $unitPrice,   // uncomment if column exists
+                    // 'total'        => $itemTotal,
+                ];
+            }
+
+            // ── Create Transaction with correct date ─────────────────────────────
+            $transactionData = [
+                'farmer'              => $farmer->farmerId,
+                'msp'                 => $mspId,
+                'project'             => $projectId,
+                'hub'                 => $hub->hubId,
+                'transactionType'     => 'Service',
+                'totalCost'           => $totalCost,
+                'transactionStatus'   => 'PAID',
+                'transactionReference'=> strtoupper(Str::random(2)) . mt_rand(1000000000, 9999999999),
+                'paymentMethod'       => 'Cash',
+                'addedBy'             => $addedBy,
+                // 'created_at'          => $serviceDate,
+                // 'updated_at'          => $serviceDate,
+            ];
+
+            // if ($serviceDate) {
+            //     $transactionData['created_at'] = $serviceDate . ' 00:00:00';
+            //     $transactionData['updated_at'] = $serviceDate . ' 00:00:00';
+            // }
+
+            $transaction = new Transactions($transactionData);
+$transaction->timestamps = false;
+$transaction->created_at = $serviceDate;
+$transaction->updated_at = $serviceDate;
+$transaction->save();
+
+            // ── TransactionList entries ──────────────────────────────────────────
+            foreach ($transactionItems as $item) {
+               $transaction_list =  TransactionList::create([
+                    // 'transaction_id'       => $transaction->id,               // preferred over reference
+                    'transactionReference' => $transaction->transactionReference, // only if needed
+                    'serviceId'            => $item['serviceId'],
+                    'quantity'             => $item['quantity'],
+                    // 'created_at'           => $transaction->created_at,
+                    // 'updated_at'           => $transaction->updated_at,
+                    
+                ]);
+
+                $transaction_list->timestamps = false;
+$transaction_list->created_at = $serviceDate;
+$transaction_list->updated_at = $serviceDate;
+$transaction_list->save();
+            }
+
+            $processed += $group->count();
+        }
+
+        DB::commit();
+
+        return response()->json([
+            'message'        => 'Bulk upload completed successfully',
+            'processed_rows' => $processed,
+        ], 200);
+
+    } catch (\Throwable $e) {
+        DB::rollBack();
+        return response()->json([
+            'error'   => 'Upload failed',
+            'message' => $e->getMessage(),
+            'line'    => $e->getLine(),
+            'row'     => $rowNumber ?? null,
+        ], 422);
+    }
+}
 }

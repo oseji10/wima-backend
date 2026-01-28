@@ -22,6 +22,7 @@ class Transactions extends Model
         'hub',
         'project',
         'zohoInvoiceId',
+        'addedBy'
     ];
     protected $primaryKey = 'transactionId';
 
