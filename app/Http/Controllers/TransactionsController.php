@@ -172,35 +172,64 @@ public function index(Request $request)
 
 public function analytics(Request $request)
 {
-//    return $data2 = TransactionList::select('transaction_list.transactionReference', 'services.serviceName as service', 'services.measuringUnit as measure', 'transaction_list.quantity', 'transaction_list.unitCost as cost', \DB::raw("SUM(transaction_list.unitCost*transaction_list.quantity) as totalCost"), 'transaction_list.created_at')
-//    ->join('services', 'transaction_list.serviceId', '=', 'services.serviceId')
-//     ->groupBy('transaction_list.transactionReference', 'services.serviceName', 'services.measuringUnit', 'transaction_list.quantity', 'transaction_list.unitCost', 'transaction_list.created_at')
-//    ->get();
-$uniqueMsps = MSPs::select(
-        'msps.mspId',
-        'msps.gender',
-        'states.stateName as state',
-        'projects.projectName as projectName'
-    )
-    ->join('hubs', 'msps.hub', '=', 'hubs.hubId')
-    ->join('states', 'hubs.state', '=', 'states.stateId')
-    ->join('projects', 'msps.project', '=', 'projects.projectId')
-    ->distinct()
-    ->get();
+    // Get unique MSPs with their state and project (for global counts)
+    $uniqueMsps = MSPs::select(
+            'msps.mspId',
+            'msps.gender',
+            'states.stateName as state',
+            'projects.projectName as projectName'
+        )
+        ->join('hubs', 'msps.hub', '=', 'hubs.hubId')
+        ->join('states', 'hubs.state', '=', 'states.stateId')
+        ->join('projects', 'msps.project', '=', 'projects.projectId')
+        ->distinct()
+        ->get();
 
-$genderCounts = [
-    'Male'   => $uniqueMsps->whereIn('gender', ['Male', 'male'])->count(),
-    'Female' => $uniqueMsps->whereIn('gender', ['Female', 'female'])->count(),
-    'StateProject' => $uniqueMsps->groupBy(['state', 'projectName'])->map(function($projects) {
-        return $projects->map(function($group) {
-            return [
-                'Male'   => $group->whereIn('gender', ['Male', 'male'])->count(),
-                'Female' => $group->whereIn('gender', ['Female', 'female'])->count(),
-                'Total'  => $group->count(),
+    // Get unique MSP counts from transactions by state and project
+    $transactionMsps = \DB::table('transactions')
+        ->select(
+            'states.stateName as state',
+            'projects.projectName as projectName',
+            'msps.gender',
+            \DB::raw('COUNT(DISTINCT msps.mspId) as count')
+        )
+        ->join('hubs', 'transactions.hub', '=', 'hubs.hubId')
+        ->join('states', 'hubs.state', '=', 'states.stateId')
+        ->join('msps', 'transactions.msp', '=', 'msps.mspId')
+        ->join('projects', 'transactions.project', '=', 'projects.projectId')
+        ->groupBy('states.stateName', 'projects.projectName', 'msps.gender')
+        ->get();
+
+    $genderCounts = [
+        'Male'   => $uniqueMsps->whereIn('gender', ['Male', 'male'])->count(),
+        'Female' => $uniqueMsps->whereIn('gender', ['Female', 'female'])->count(),
+        'StateProject' => []
+    ];
+
+    // Process the grouped results
+    foreach ($transactionMsps as $record) {
+        $state = $record->state;
+        $project = $record->projectName;
+        
+        if (!isset($genderCounts['StateProject'][$state])) {
+            $genderCounts['StateProject'][$state] = [];
+        }
+        if (!isset($genderCounts['StateProject'][$state][$project])) {
+            $genderCounts['StateProject'][$state][$project] = [
+                'Male' => 0,
+                'Female' => 0,
+                'Total' => 0
             ];
-        });
-    })->toArray()
-];
+        }
+        
+        if (in_array($record->gender, ['Male', 'male'])) {
+            $genderCounts['StateProject'][$state][$project]['Male'] += $record->count;
+        } else {
+            $genderCounts['StateProject'][$state][$project]['Female'] += $record->count;
+        }
+        
+        $genderCounts['StateProject'][$state][$project]['Total'] += $record->count;
+    }
 
     $data = Transactions::select(
             'states.stateName as state',
@@ -208,24 +237,24 @@ $genderCounts = [
             'transactions.created_at',
             'services.serviceName as service',
             'projects.projectName as projectName',
-           \DB::raw("COUNT(DISTINCT CASE WHEN msps.gender IN ('Female','female') THEN msps.mspId END) as FemaleCount"),
-        \DB::raw("COUNT(DISTINCT CASE WHEN msps.gender IN ('Male','male') THEN msps.mspId END) as MaleCount"),
-        \DB::raw("SUM(totalCost) as totalCost")
+            \DB::raw("COUNT(DISTINCT CASE WHEN msps.gender IN ('Female','female') THEN msps.mspId END) as FemaleCount"),
+            \DB::raw("COUNT(DISTINCT CASE WHEN msps.gender IN ('Male','male') THEN msps.mspId END) as MaleCount"),
+            \DB::raw("SUM(totalCost) as totalCost")
         )
         ->join('hubs', 'transactions.hub', '=', 'hubs.hubId')
-        ->join('states', 'hubs.state', '=', 'states.stateId') // join to states table
-        ->join('lgas', 'hubs.lga', '=', 'lgas.lgaId') // join to lgas table
+        ->join('states', 'hubs.state', '=', 'states.stateId')
+        ->join('lgas', 'hubs.lga', '=', 'lgas.lgaId')
         ->join('transaction_list', 'transactions.transactionReference', '=', 'transaction_list.transactionReference')
-        ->join('services', 'transaction_list.serviceId', '=', 'services.serviceId') // join to services table
+        ->join('services', 'transaction_list.serviceId', '=', 'services.serviceId')
         ->join('farmers', 'transactions.farmer', '=', 'farmers.farmerId')
         ->join('msps', 'transactions.msp', '=', 'msps.mspId')
         ->join('projects', 'transactions.project', '=', 'projects.projectId')
-        ->groupBy('states.stateName', 'lgas.lgaName', 'transactions.created_at', 'services.serviceName', 'farmers.gender', 'projects.projectName')
+        ->groupBy('states.stateName', 'lgas.lgaName', 'transactions.created_at', 'services.serviceName', 'projects.projectName')
         ->get()
         ->map(function($transaction) {
             return [
                 'MonthYear' => $transaction->created_at->format('M-y'),
-                'State'     => $transaction->state,  // now you get the name, not just ID
+                'State'     => $transaction->state,
                 'LGA'       => $transaction->lga,
                 'Activity'  => $transaction->service,
                 'Male'      => $transaction->MaleCount,
@@ -235,14 +264,11 @@ $genderCounts = [
             ];
         });
 
-    // return response()->json($data);
     return response()->json([
-    'genderCounts' => $genderCounts,   // only once, global
-    'transactions' => $data // detailed breakdown
-]);
-
+        'genderCounts' => $genderCounts,
+        'transactions' => $data
+    ]);
 }
-
 
 
     public function show($transactionId)
