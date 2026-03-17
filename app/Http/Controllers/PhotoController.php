@@ -23,7 +23,7 @@ class PhotoController extends Controller
 
         $photos = $query
             ->orderBy('sort_order')
-            ->orderBy('created_at', 'desc')
+            ->orderBy('created_at', 'asc')
             ->get([
                 'id',
                 'title',
