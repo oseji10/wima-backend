@@ -81,23 +81,30 @@ public function store(Request $request): JsonResponse
         'sort_order' => ['nullable', 'integer', 'min:0'],
         'is_active' => ['nullable', 'boolean'],
 
-        // single URL fallback
         'src' => ['nullable', 'url', 'max:2048'],
 
-        // multiple upload support
         'image_files' => ['nullable', 'array'],
         'image_files.*' => ['image', 'mimes:jpg,jpeg,png,webp', 'max:10240'],
     ]);
+
+    $category = strtolower(trim($validated['category']));
+    $isActive = $validated['is_active'] ?? true;
+
+    // If sort_order was supplied, start from it.
+    // Otherwise start from current max + 1.
+    $nextSortOrder = array_key_exists('sort_order', $validated)
+        ? (int) $validated['sort_order']
+        : ((int) Photo2::max('sort_order')) + 1;
 
     // Case 1: single URL
     if ($request->filled('src')) {
         $photo = Photo2::create([
             'title' => $validated['title'] ?? null,
             'src' => $validated['src'],
-            'category' => strtolower(trim($validated['category'])),
+            'category' => $category,
             'instagram_url' => $validated['instagram_url'] ?? null,
-            'sort_order' => $validated['sort_order'] ?? 0,
-            'is_active' => $validated['is_active'] ?? true,
+            'sort_order' => $nextSortOrder,
+            'is_active' => $isActive,
         ]);
 
         return response()->json([
@@ -127,13 +134,14 @@ public function store(Request $request): JsonResponse
         $photo = Photo2::create([
             'title' => $validated['title'] ?? null,
             'src' => $imageSrc,
-            'category' => strtolower(trim($validated['category'])),
+            'category' => $category,
             'instagram_url' => $validated['instagram_url'] ?? null,
-            'sort_order' => $validated['sort_order'] ?? 0,
-            'is_active' => $validated['is_active'] ?? true,
+            'sort_order' => $nextSortOrder,
+            'is_active' => $isActive,
         ]);
 
         $uploadedPhotos[] = $photo;
+        $nextSortOrder++;
     }
 
     return response()->json([
