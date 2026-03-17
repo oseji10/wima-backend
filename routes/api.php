@@ -24,7 +24,8 @@ use App\Http\Controllers\FarmersController;
 use App\Http\Controllers\MembershipController;
 use App\Http\Controllers\ServicesController;
 use App\Http\Controllers\CommodityController;
-
+use App\Http\Controllers\PhotoController;
+use App\Http\Controllers\VideoController;
 
 
 /*
@@ -52,8 +53,8 @@ use App\Http\Controllers\CommodityController;
     Route::get('/hubs/all-active-hubs', [HubsController::class, 'allActiveHubs']);
     Route::post('/hub-lgas', [LgaController::class, 'getLgasByState']);
 
-Route::post('/membership-application', [MembershipController::class, 'store']);
-Route::put('/membership-application/{id}/status', [MembershipController::class, 'updateStatus']);
+    Route::post('/membership-application', [MembershipController::class, 'store']);
+    Route::put('/membership-application/{id}/status', [MembershipController::class, 'updateStatus']);
     Route::get('/price-alert', [ServicesController::class, 'priceAlert']);
     // Protected routes with JWT authentication
     Route::get('/membership-application', [MembershipController::class, 'index']);
@@ -91,82 +92,95 @@ Route::put('/membership-application/{id}/status', [MembershipController::class, 
         });
 
 
-Route::get('/dashboard', [AnalyticsController::class, 'dashboard']);
-Route::get('/transaction-analysis', [AnalyticsController::class, 'transactionAnalysis']);
-Route::get('/farmers-by-state', [AnalyticsController::class, 'farmersByState']);
-Route::get('/latest-registered-members', [AnalyticsController::class, 'latestRegisteredMembers']);
-        // Application routes
-    Route::get('/equipment', [EquipmentController::class, 'index']);
-    Route::post('/equipment', [EquipmentController::class, 'store']);
-    Route::get('/equipment/search', [EquipmentController::class, 'searchEquipment']);
+        Route::get('/dashboard', [AnalyticsController::class, 'dashboard']);
+        Route::get('/transaction-analysis', [AnalyticsController::class, 'transactionAnalysis']);
+        Route::get('/farmers-by-state', [AnalyticsController::class, 'farmersByState']);
+        Route::get('/latest-registered-members', [AnalyticsController::class, 'latestRegisteredMembers']);
+            // Application routes
+        Route::get('/equipment', [EquipmentController::class, 'index']);
+        Route::post('/equipment', [EquipmentController::class, 'store']);
+        Route::get('/equipment/search', [EquipmentController::class, 'searchEquipment']);
 
 
 
-    Route::get('/equipment/categories', [EquipmentController::class, 'equipmentCategories']);
+        Route::get('/equipment/categories', [EquipmentController::class, 'equipmentCategories']);
 
-    Route::get('/users', [UsersController::class, 'index']);
-    Route::post('/users', [UsersController::class, 'createUser']);
-    Route::put('/users/{id}', [UsersController::class, 'update']);
-    Route::delete('/users/{id}', [UsersController::class, 'destroy']);
+        Route::get('/users', [UsersController::class, 'index']);
+        Route::post('/users', [UsersController::class, 'createUser']);
+        Route::put('/users/{id}', [UsersController::class, 'update']);
+        Route::delete('/users/{id}', [UsersController::class, 'destroy']);
 
-    Route::get('/projects', [ProjectsController::class, 'index']);
-    Route::post('/projects', [ProjectsController::class, 'store']);
-    Route::put('/projects/{projectId}', [ProjectsController::class, 'update']);
-    Route::delete('/projects/{projectId}', [ProjectsController::class, 'destroy']);
+        Route::get('/projects', [ProjectsController::class, 'index']);
+        Route::post('/projects', [ProjectsController::class, 'store']);
+        Route::put('/projects/{projectId}', [ProjectsController::class, 'update']);
+        Route::delete('/projects/{projectId}', [ProjectsController::class, 'destroy']);
 
-    Route::post('/roles', [RolesController::class, 'store']);
-    Route::put('/roles/{roleId}', [RolesController::class, 'update']);
-    Route::delete('/roles/{roleId}', [RolesController::class, 'destroy']);
+        Route::post('/roles', [RolesController::class, 'store']);
+        Route::put('/roles/{roleId}', [RolesController::class, 'update']);
+        Route::delete('/roles/{roleId}', [RolesController::class, 'destroy']);
 
-    Route::get('/states', [StateController::class, 'index']);
-    Route::get('/lgas', [LgaController::class, 'getLgasByState']);
-    Route::get('/subhubs', [LgaController::class, 'getSubHubsByHubs']);
-
-
-    Route::get('/hubs/active', [HubsController::class, 'activeHubs']);
-    Route::get('/hubs', [HubsController::class, 'index']);
-    Route::post('/hubs', [HubsController::class, 'store']);
-    Route::put('/hubs/{activeLocationId}', [HubsController::class, 'update']);
-    Route::delete('/hubs/{hubId}', [HubsController::class, 'destroy']);
-
-    Route::get('/hubs/state/{stateId}', [HubsController::class, 'hubsInState']);
-
-    Route::get('/farmers', [FarmersController::class, 'index']);
-    Route::post('/farmers', [FarmersController::class, 'store']);
-    Route::put('/farmers/{farmerId}', [FarmersController::class, 'update']);
-    Route::delete('/farmers/{farmerId}', [FarmersController::class, 'destroy']);
-    Route::get('/farmers/search-2', [FarmersController::class, 'farmerSearch']);
+        Route::get('/states', [StateController::class, 'index']);
+        Route::get('/lgas', [LgaController::class, 'getLgasByState']);
+        Route::get('/subhubs', [LgaController::class, 'getSubHubsByHubs']);
 
 
-    Route::get('/msps', [MSPsController::class, 'index']);
-    Route::post('/msps', [MSPsController::class, 'store']);
+        Route::get('/hubs/active', [HubsController::class, 'activeHubs']);
+        Route::get('/hubs', [HubsController::class, 'index']);
+        Route::post('/hubs', [HubsController::class, 'store']);
+        Route::put('/hubs/{activeLocationId}', [HubsController::class, 'update']);
+        Route::delete('/hubs/{hubId}', [HubsController::class, 'destroy']);
 
-     Route::get('/services', [ServicesController::class, 'index']);
-    Route::post('/services', [ServicesController::class, 'store']);
-    Route::put('/services/{serviceId}', [ServicesController::class, 'update']);
-    Route::delete('/services/{serviceId}', [ServicesController::class, 'destroy']);
+        Route::get('/hubs/state/{stateId}', [HubsController::class, 'hubsInState']);
 
-     Route::get('/commodities', [CommodityController::class, 'index']);
-    Route::post('/commodities', [CommodityController::class, 'store']);
-    Route::put('/commodities/{commodityId}', [CommodityController::class, 'update']);
-    Route::delete('/commodities/{commodityId}', [CommodityController::class, 'destroy']);
+        Route::get('/farmers', [FarmersController::class, 'index']);
+        Route::post('/farmers', [FarmersController::class, 'store']);
+        Route::put('/farmers/{farmerId}', [FarmersController::class, 'update']);
+        Route::delete('/farmers/{farmerId}', [FarmersController::class, 'destroy']);
+        Route::get('/farmers/search-2', [FarmersController::class, 'farmerSearch']);
 
-    Route::get('/transactions', [TransactionsController::class, 'index']);
-    Route::get('/transactions/{transactionId}', [TransactionsController::class, 'show']);
-    Route::post('/transactions', [TransactionsController::class, 'store']);
-    Route::put('/transactions/{transactionId}/confirm', [TransactionsController::class, 'updatePaymentMethod']);
-    Route::put('/transactions/{transactionId}/project-type', [TransactionsController::class, 'updateProjectType']);
-    Route::post('/transactions/upload-bulk', [TransactionsController::class, 'uploadBulk']);
 
-    Route::get('/agents', [AgentsController::class, 'index']);
-    Route::post('/agents', [AgentsController::class, 'store']);
-    Route::put('/agents/{agentId}', [AgentsController::class, 'update']);
-    Route::delete('/agents/{agentId}', [AgentsController::class, 'destroy']);
+        Route::get('/msps', [MSPsController::class, 'index']);
+        Route::post('/msps', [MSPsController::class, 'store']);
 
-    Route::get('/farmers/search', [FarmersController::class, 'search']);
-    // Route::post('/services', [FarmersController::class, 'store']);
+        Route::get('/services', [ServicesController::class, 'index']);
+        Route::post('/services', [ServicesController::class, 'store']);
+        Route::put('/services/{serviceId}', [ServicesController::class, 'update']);
+        Route::delete('/services/{serviceId}', [ServicesController::class, 'destroy']);
 
-    });
+        Route::get('/commodities', [CommodityController::class, 'index']);
+        Route::post('/commodities', [CommodityController::class, 'store']);
+        Route::put('/commodities/{commodityId}', [CommodityController::class, 'update']);
+        Route::delete('/commodities/{commodityId}', [CommodityController::class, 'destroy']);
+
+        Route::get('/transactions', [TransactionsController::class, 'index']);
+        Route::get('/transactions/{transactionId}', [TransactionsController::class, 'show']);
+        Route::post('/transactions', [TransactionsController::class, 'store']);
+        Route::put('/transactions/{transactionId}/confirm', [TransactionsController::class, 'updatePaymentMethod']);
+        Route::put('/transactions/{transactionId}/project-type', [TransactionsController::class, 'updateProjectType']);
+        Route::post('/transactions/upload-bulk', [TransactionsController::class, 'uploadBulk']);
+
+        Route::get('/agents', [AgentsController::class, 'index']);
+        Route::post('/agents', [AgentsController::class, 'store']);
+        Route::put('/agents/{agentId}', [AgentsController::class, 'update']);
+        Route::delete('/agents/{agentId}', [AgentsController::class, 'destroy']);
+
+        Route::get('/farmers/search', [FarmersController::class, 'search']);
+        // Route::post('/services', [FarmersController::class, 'store']);
+
+
+
+        
+        });
+        Route::get('/videos', [VideoController::class, 'index']);
+        Route::get('/videos/categories', [VideoController::class, 'categories']);
+        Route::get('/videos/{id}', [VideoController::class, 'show']);
+
+        Route::get('/photos', [PhotoController::class, 'index']);
+        Route::get('/photos/categories', [PhotoController::class, 'categories']);
+        Route::get('/photos/{id}', [PhotoController::class, 'show']);
+
+        Route::post('/photos', [PhotoController::class, 'store']);
+        Route::post('/videos', [VideoController::class, 'store']);
 
     Route::post('/zohotest', [TransactionsController::class, 'zohotest']);
 
