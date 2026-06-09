@@ -26,6 +26,13 @@ use App\Http\Controllers\ServicesController;
 use App\Http\Controllers\CommodityController;
 use App\Http\Controllers\PhotoController;
 use App\Http\Controllers\VideoController;
+use App\Http\Controllers\AssetManagementController;
+use App\Http\Controllers\FinanceController;
+use App\Http\Controllers\MonitoringController;
+use App\Http\Controllers\HrController;
+
+use App\Http\Controllers\SecurityController;
+use App\Http\Controllers\SafeguardingController;
 
 
 /*
@@ -169,7 +176,185 @@ use App\Http\Controllers\VideoController;
 
 
 
-        
+
+// ---- Fleet level ----
+Route::get('asset-management/dashboard', [AssetManagementController::class, 'fleetDashboard']);
+Route::get('asset-management/alerts',    [AssetManagementController::class, 'serviceAlerts']);
+Route::get('asset-management/incidents', [AssetManagementController::class, 'incidentIndex']);
+
+// ---- Per asset overview ----
+Route::get('equipment/{equipmentId}/overview', [AssetManagementController::class, 'assetOverview']);
+
+// ---- Lifecycle ----
+Route::get('equipment/{equipmentId}/lifecycle',  [AssetManagementController::class, 'lifecycleIndex']);
+Route::post('equipment/{equipmentId}/lifecycle', [AssetManagementController::class, 'lifecycleStore']);
+
+// ---- Movements / deployment logs ----
+Route::get('equipment/{equipmentId}/movements',  [AssetManagementController::class, 'movementIndex']);
+Route::post('equipment/{equipmentId}/movements', [AssetManagementController::class, 'movementStore']);
+Route::put('movements/{id}/receive',             [AssetManagementController::class, 'movementReceive']);
+
+// ---- Utilization & uptime ----
+Route::get('equipment/{equipmentId}/utilization',  [AssetManagementController::class, 'utilizationIndex']);
+Route::post('equipment/{equipmentId}/utilization', [AssetManagementController::class, 'utilizationStore']);
+
+// ---- Maintenance schedules ----
+Route::get('equipment/{equipmentId}/schedules',  [AssetManagementController::class, 'scheduleIndex']);
+Route::post('equipment/{equipmentId}/schedules', [AssetManagementController::class, 'scheduleStore']);
+Route::put('schedules/{id}',                      [AssetManagementController::class, 'scheduleUpdate']);
+Route::delete('schedules/{id}',                   [AssetManagementController::class, 'scheduleDestroy']);
+Route::post('schedules/{id}/serviced',            [AssetManagementController::class, 'scheduleMarkServiced']);
+
+// ---- Incidents / breakdowns ----
+Route::post('equipment/{equipmentId}/incidents', [AssetManagementController::class, 'incidentStore']);
+Route::put('incidents/{id}',                      [AssetManagementController::class, 'incidentUpdate']);
+
+// ---- Compliance logs ----
+Route::get('equipment/{equipmentId}/compliance',  [AssetManagementController::class, 'complianceIndex']);
+Route::post('equipment/{equipmentId}/compliance', [AssetManagementController::class, 'complianceStore']);
+Route::put('compliance/{id}',                      [AssetManagementController::class, 'complianceUpdate']);
+
+
+
+
+
+// ---- Treasury dashboard ----
+Route::get('finance/dashboard', [FinanceController::class, 'dashboard']);
+
+// ---- Sharing scheme (the variables) ----
+Route::get('finance/scheme',          [FinanceController::class, 'schemeShow']);
+Route::put('finance/scheme',          [FinanceController::class, 'schemeUpdate']);
+Route::get('finance/scheme/preview',  [FinanceController::class, 'schemePreview']);
+
+// ---- Service catalogue ----
+Route::get('finance/services',        [FinanceController::class, 'serviceIndex']);
+Route::post('finance/services',       [FinanceController::class, 'serviceStore']);
+Route::put('finance/services/{id}',   [FinanceController::class, 'serviceUpdate']);
+Route::delete('finance/services/{id}',[FinanceController::class, 'serviceDestroy']);
+
+// ---- Revenue tracking & sharing ----
+Route::get('finance/revenue',                 [FinanceController::class, 'revenueIndex']);
+Route::post('finance/revenue',                [FinanceController::class, 'revenueStore']);
+Route::put('finance/revenue/{id}',            [FinanceController::class, 'revenueUpdate']);
+Route::delete('finance/revenue/{id}',         [FinanceController::class, 'revenueDestroy']);
+Route::get('finance/hubs/{hubId}/projection', [FinanceController::class, 'revenueProjection']);
+
+// ---- Invoicing & receivables ----
+Route::get('finance/invoices',                  [FinanceController::class, 'invoiceIndex']);
+Route::post('finance/invoices',                 [FinanceController::class, 'invoiceStore']);
+Route::get('finance/invoices/{id}',             [FinanceController::class, 'invoiceShow']);
+Route::put('finance/invoices/{id}',             [FinanceController::class, 'invoiceUpdate']);
+Route::post('finance/invoices/{id}/payments',   [FinanceController::class, 'invoiceRecordPayment']);
+Route::put('finance/invoices/{id}/void',        [FinanceController::class, 'invoiceVoid']);
+
+// ---- Donor / grant / investment tracking ----
+Route::get('finance/funding',                       [FinanceController::class, 'fundingIndex']);
+Route::post('finance/funding',                      [FinanceController::class, 'fundingStore']);
+Route::get('finance/funding/{id}',                  [FinanceController::class, 'fundingShow']);
+Route::put('finance/funding/{id}',                  [FinanceController::class, 'fundingUpdate']);
+Route::post('finance/funding/{id}/transactions',    [FinanceController::class, 'fundingTransactionStore']);
+
+
+// ---- Dashboards ----
+Route::get('me/dashboard',        [MonitoringController::class, 'executiveDashboard']);
+Route::get('me/donor-dashboard',  [MonitoringController::class, 'donorDashboard']);
+
+// ---- KPI configuration ----
+Route::get('me/indicators',            [MonitoringController::class, 'indicatorIndex']);
+Route::post('me/indicators',           [MonitoringController::class, 'indicatorStore']);
+Route::put('me/indicators/{id}',       [MonitoringController::class, 'indicatorUpdate']);
+Route::delete('me/indicators/{id}',    [MonitoringController::class, 'indicatorDestroy']);
+Route::get('me/indicators/{id}/trend', [MonitoringController::class, 'indicatorTrend']);
+Route::post('me/indicators/{id}/values', [MonitoringController::class, 'indicatorValueStore']);
+
+// ---- Field data collection forms ----
+Route::get('me/forms',          [MonitoringController::class, 'formIndex']);
+Route::post('me/forms',         [MonitoringController::class, 'formStore']);
+Route::get('me/forms/{id}',     [MonitoringController::class, 'formShow']);
+Route::put('me/forms/{id}',     [MonitoringController::class, 'formUpdate']);
+
+// ---- Submissions ----
+Route::get('me/submissions',       [MonitoringController::class, 'submissionIndex']);
+Route::post('me/submissions',      [MonitoringController::class, 'submissionStore']);
+Route::get('me/submissions/{id}',  [MonitoringController::class, 'submissionShow']);
+
+
+
+// ---- Dashboard ----
+Route::get('hr/dashboard', [HrController::class, 'dashboard']);
+
+// ---- Roles (read-only; sourced from the existing `roles` table) ----
+Route::get('hr/roles', [HrController::class, 'roleIndex']);
+
+// ---- Staff (= users + employment profile). No user creation/deletion here. ----
+Route::get('hr/staff',      [HrController::class, 'staffIndex']);
+Route::get('hr/staff/{id}', [HrController::class, 'staffShow']);
+Route::put('hr/staff/{id}', [HrController::class, 'staffUpsert']); // upserts employment profile + safe user fields
+Route::get('hr/staff/{id}/leave-balance', [HrController::class, 'leaveBalance']);
+
+// ---- Performance (linked to M&E KPIs) ----
+Route::get('hr/reviews',         [HrController::class, 'reviewIndex']);
+Route::post('hr/reviews',        [HrController::class, 'reviewStore']);
+Route::get('hr/reviews/{id}',    [HrController::class, 'reviewShow']);
+Route::put('hr/reviews/{id}',    [HrController::class, 'reviewUpdate']);
+Route::delete('hr/reviews/{id}', [HrController::class, 'reviewDestroy']);
+
+// ---- Leave ----
+Route::get('hr/leave-types',      [HrController::class, 'leaveTypeIndex']);
+Route::post('hr/leave-types',     [HrController::class, 'leaveTypeStore']);
+Route::put('hr/leave-types/{id}', [HrController::class, 'leaveTypeUpdate']);
+Route::get('hr/leave',            [HrController::class, 'leaveIndex']);
+Route::post('hr/leave',           [HrController::class, 'leaveStore']);
+Route::put('hr/leave/{id}/decide', [HrController::class, 'leaveDecide']);
+
+// ---- Compliance ----
+Route::get('hr/compliance',         [HrController::class, 'complianceIndex']);
+Route::post('hr/compliance',        [HrController::class, 'complianceStore']);
+Route::put('hr/compliance/{id}',    [HrController::class, 'complianceUpdate']);
+Route::delete('hr/compliance/{id}', [HrController::class, 'complianceDestroy']);
+
+
+
+
+// ---- Dashboard, locations & risk mapping ----
+Route::get('security/dashboard',  [SecurityController::class, 'dashboard']);
+Route::get('security/locations',  [SecurityController::class, 'locations']);
+Route::get('security/risk-map',   [SecurityController::class, 'riskMap']);
+
+// ---- Incidents ----
+Route::get('security/incidents',                 [SecurityController::class, 'incidentIndex']);
+Route::post('security/incidents',                [SecurityController::class, 'incidentStore']);
+Route::get('security/incidents/{id}',            [SecurityController::class, 'incidentShow']);
+Route::put('security/incidents/{id}',            [SecurityController::class, 'incidentUpdate']);
+Route::post('security/incidents/{id}/actions',   [SecurityController::class, 'incidentActionStore']);
+Route::delete('security/incidents/{id}',         [SecurityController::class, 'incidentDestroy']);
+
+// ---- Security vendor register ----
+Route::get('security/vendors',         [SecurityController::class, 'vendorIndex']);
+Route::post('security/vendors',        [SecurityController::class, 'vendorStore']);
+Route::put('security/vendors/{id}',    [SecurityController::class, 'vendorUpdate']);
+Route::delete('security/vendors/{id}', [SecurityController::class, 'vendorDestroy']);
+
+// =========================================================================
+//  Safeguarding (gender-based incidents) — CONFIDENTIAL, officer-gated.
+//  Access control and audit logging are enforced inside the controller.
+// =========================================================================
+Route::get('safeguarding/access',          [SafeguardingController::class, 'access']);
+
+// Officer roster (admin only)
+Route::get('safeguarding/officers',           [SafeguardingController::class, 'officerIndex']);
+Route::post('safeguarding/officers',          [SafeguardingController::class, 'officerStore']);
+Route::delete('safeguarding/officers/{user}', [SafeguardingController::class, 'officerDestroy']);
+
+// Cases (read/manage = officers only; create = any authenticated user / intake)
+Route::get('safeguarding/cases',              [SafeguardingController::class, 'caseIndex']);
+Route::post('safeguarding/cases',             [SafeguardingController::class, 'caseStore']);
+Route::get('safeguarding/cases/{id}',         [SafeguardingController::class, 'caseShow']);
+Route::put('safeguarding/cases/{id}',         [SafeguardingController::class, 'caseUpdate']);
+Route::post('safeguarding/cases/{id}/actions', [SafeguardingController::class, 'caseActionStore']);
+Route::get('safeguarding/cases/{id}/audit',   [SafeguardingController::class, 'auditIndex']);
+
+
         });
         Route::get('/videos', [VideoController::class, 'index']);
         Route::get('/videos/categories', [VideoController::class, 'categories']);
@@ -188,6 +373,9 @@ use App\Http\Controllers\VideoController;
         Route::options('{any}', function () {
             return response()->json([], 200);
         })->where('any', '.*');
+
+
+
 
 
         // routes/web.php
