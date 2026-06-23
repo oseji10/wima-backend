@@ -31,6 +31,8 @@ use App\Http\Controllers\FinanceController;
 use App\Http\Controllers\MonitoringController;
 use App\Http\Controllers\HrController;
 
+
+
 use App\Http\Controllers\SecurityController;
 use App\Http\Controllers\SafeguardingController;
 
@@ -80,6 +82,14 @@ use App\Http\Controllers\SafeguardingController;
     Route::post('/book-service', [TransactionsController::class, 'bookServiceAndZoho']);
     Route::get('/check-equipment-availability/{equipmentId}/{bookingDate}', [TransactionsController::class, 'checkEquipmentAvailability']);
 
+
+    Route::post('/farmers/register', [FarmersController::class, 'register']);
+    
+
+    Route::post('/msps/register', [MSPsController::class, 'register']);
+    
+    Route::get('/validate-msp/{phoneNumber}', [MSPsController::class, 'validateMSP']);
+    
 
     Route::middleware(['auth.jwt'])->group(function () {
         Route::get('/user', function () {

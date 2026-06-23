@@ -21,12 +21,20 @@ class MSPs extends Model
         'addedBy',
         'project',
         'userId',
+        'trainings_attended',
+        'ageBracket',
     ];
     // protected $primaryKey = 'mspId';
     protected $hidden = [
         'created_at',
         'updated_at',
     ];
+
+    protected $casts = [
+        'trainings_attended' => 'array',
+        'ageBracket' => 'integer',
+    ];
+
     public function states()
     {
         return $this->belongsTo(State::class, 'state', 'stateId');
@@ -55,5 +63,13 @@ class MSPs extends Model
      public function hubs()
     {
         return $this->belongsTo(Hubs::class, 'hub', 'hubId');
+    }
+
+    // Generate MSP ID
+    public static function generateMspId()
+    {
+        $latest = self::orderBy('id', 'desc')->first();
+        $number = $latest ? intval(substr($latest->mspId, 3)) + 1 : 1;
+        return 'MSP' . str_pad($number, 6, '0', STR_PAD_LEFT);
     }
 }

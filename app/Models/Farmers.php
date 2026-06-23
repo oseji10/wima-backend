@@ -27,6 +27,8 @@ class Farmers extends Model
         'hub',
         'project',
         'zohoCustomerId',
+        'mechanized_services',
+
     ];
     protected $primaryKey = 'id';
     protected $hidden = [
@@ -37,6 +39,11 @@ class Farmers extends Model
     // {
     //     return $this->belongsTo(State::class, 'state', 'stateId');
     // } 
+
+    protected $casts = [
+        'mechanized_services' => 'array',
+        // 'ageBracke' => 'integer',
+    ];
 
      public function msp()
     {
@@ -54,4 +61,12 @@ class Farmers extends Model
     {
         return $this->belongsTo(Project::class, 'project', 'projectId');
     } 
+
+
+    public static function generateFarmerId()
+    {
+        $latest = self::orderBy('id', 'desc')->first();
+        $number = $latest ? intval(substr($latest->farmerId, 2)) + 1 : 1;
+        return 'FM' . str_pad($number, 6, '0', STR_PAD_LEFT);
+    }
 }

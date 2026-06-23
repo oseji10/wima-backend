@@ -12,6 +12,10 @@ use Illuminate\Support\Facades\Auth;
 use App\Models\StateCoordinators;
 use App\Models\CommunityLead;
 use App\Services\ZohoBooks;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\DB;  // ✅ Add this
+use Illuminate\Support\Facades\Log;  // ✅ Add this
+use Illuminate\Http\JsonResponse;
 
 class FarmersController extends Controller
 {
@@ -375,6 +379,164 @@ public function store(Request $request)
         return response()->json(['exists' => $farmer ? true : false, 'fullname' => $farmer ? $farmer->farmerFirstName . ' ' . $farmer->farmerLastName . ' ' . $farmer->farmerLastName : null, 'gender' => $farmer ? $farmer->gender : null, 'age' => $farmer ? $farmer->ageBracket : null, 'email' => $farmer ? $farmer->email : null]);
     }
     
+
+
+
+    /**
+     * Register a new farmer
+     */
+    public function register(Request $request): JsonResponse
+    {
+        try {
+            // Validate request
+            $validator = Validator::make($request->all(), [
+                'fullName' => 'required|string|max:255',
+                'phoneNumber' => 'required|string|max:15|unique:farmers,phoneNumber',
+                'email' => 'nullable|email|max:255',
+                'age' => 'required|integer|min:18|max:120',
+                'gender' => 'nullable|string|in:Male,Female',
+                'stateId' => 'required|integer',
+                'lgaId' => 'required|integer',
+                'mechanizedServices' => 'nullable|array',
+                'mechanizedServices.*' => 'string',
+            ], [
+                'phoneNumber.unique' => 'This phone number is already registered.',
+                'age.min' => 'You must be at least 18 years old.',
+                'age.max' => 'Age cannot exceed 120 years.',
+                'fullName.required' => 'Full name is required.',
+                'phoneNumber.required' => 'Phone number is required.',
+                'stateId.required' => 'Please select a state.',
+                'lgaId.required' => 'Please select an LGA.',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            DB::beginTransaction();
+
+            // Check if farmer already exists
+            $existingFarmer = Farmers::where('phoneNumber', $request->phoneNumber)->first();
+            if ($existingFarmer) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Farmer with this phone number already exists.',
+                    'data' => $existingFarmer
+                ], 409);
+            }
+
+            // Generate farmer ID
+            $farmerId = Farmers::generateFarmerId();
+
+            // Determine age bracket
+            $ageBracket = $this->getAgeBracket($request->age);
+
+            // Split full name
+            $nameParts = $this->splitFullName($request->fullName);
+
+            // Find the hub by LGA
+    $hub = Hubs::where('lga', $request->lgaId)->first();
+
+    if (!$hub) {
+        return response()->json([
+            'error' => 'No active hub found for the selected state and LGA combination'
+        ], 422);
+    }
+
+            // Create farmer
+            $farmer = Farmers::create([
+                'farmerId' => $farmerId,
+                'farmerFirstName' => $nameParts['firstName'],
+                'farmerLastName' => $nameParts['lastName'],
+                'farmerOtherNames' => $nameParts['otherNames'],
+                'phoneNumber' => $request->phoneNumber,
+                'email' => $request->email,
+                'gender' => $request->gender,
+                'age' => $request->age,
+                'ageBracket' => $ageBracket,
+                'stateId' => $request->stateId,
+                'hub' => $hub->hubId,
+                'project' => 3,
+                'mechanized_services' => $request->mechanizedServices ?? [],
+                'status' => 'active',
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Farmer registered successfully.',
+                'data' => $farmer
+            ], 201);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Farmer registration failed: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Registration failed. Please try again.',
+                'error' => config('app.debug') ? $e->getMessage() : null
+            ], 500);
+        }
+    }
+
+    
+
+    /**
+     * Helper methods
+     */
+    private function getAgeBracket(int $age): string
+    {
+        if ($age < 18) return 'Under 18';
+        if ($age <= 25) return '18-25';
+        if ($age <= 35) return '26-35';
+        if ($age <= 45) return '36-45';
+        if ($age <= 55) return '46-55';
+        return '55+';
+    }
+
+    private function splitFullName(string $fullName): array
+    {
+        $parts = array_values(array_filter(explode(' ', trim($fullName))));
+        
+        if (count($parts) === 0) {
+            return [
+                'firstName' => '',
+                'lastName' => '',
+                'otherNames' => null
+            ];
+        }
+
+        if (count($parts) === 1) {
+            return [
+                'firstName' => $parts[0],
+                'lastName' => '',
+                'otherNames' => null
+            ];
+        }
+
+        if (count($parts) === 2) {
+            return [
+                'firstName' => $parts[0],
+                'lastName' => $parts[1],
+                'otherNames' => null
+            ];
+        }
+
+        return [
+            'firstName' => $parts[0],
+            'lastName' => end($parts),
+            'otherNames' => implode(' ', array_slice($parts, 1, -1))
+        ];
+    }
+
 
 //    public function farmerSearch(Request $request)
 // {
