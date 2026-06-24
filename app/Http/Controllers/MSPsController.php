@@ -40,7 +40,7 @@ public function index(Request $request)
     $community_lead = CommunityLead::where('userId', $user->id)->first();
 
     // Role-based filtering
-    if ($user->role === 4) {
+    if ($user->role === 4 || $user->role === '4') {
         // State coordinators see only their state's records
         $query->whereHas('hub', function($q) use ($state_coordinators) {
             $q->where('state', (string) $state_coordinators->stateId);
@@ -52,7 +52,7 @@ public function index(Request $request)
             });
         }
 
-    } elseif ($user->role === 5) {
+    } elseif ($user->role === 5 || $user->role === '5') {
         // Community leads see only their community's records
         $query->whereHas('hub', function($q) use ($community_lead) {
             $q->where('lga', (string) $community_lead->lga);
