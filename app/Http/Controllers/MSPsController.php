@@ -43,19 +43,19 @@ public function index(Request $request)
     if ($user->role === 4) {
         // State coordinators see only their state's records
         $query->whereHas('hub', function($q) use ($state_coordinators) {
-            $q->where('state', $state_coordinators->stateId);
+            $q->where('state', (string) $state_coordinators->stateId);
         });
 
         if ($lga) {
             $query->whereHas('hub', function($q) use ($lga) {
-                $q->where('lga', $lga);
+                $q->where('lga', (string) $lga);
             });
         }
 
     } elseif ($user->role === 5) {
         // Community leads see only their community's records
         $query->whereHas('hub', function($q) use ($community_lead) {
-            $q->where('lga', $community_lead->lga);
+            $q->where('lga', (string) $community_lead->lga);
         });
 
     } elseif ($user->role === 1 || $user->role === 3) {
@@ -85,12 +85,12 @@ if ($lga) {
                 $q->whereHas('hub', function($hq) use ($state_coordinators, $lga) {
                     $hq->where('state', $state_coordinators->stateId);
                     if ($lga) {
-                        $hq->where('lga', $lga);
+                        $hq->where('lga', (string) $lga);
                     }
                 });
             } elseif ($user->role === 5) {
                 $q->whereHas('hub', function($hq) use ($community_lead) {
-                    $hq->where('lga', $community_lead->lga);
+                    $hq->where('lga', (string) $community_lead->lga);
                 });
             }
 
