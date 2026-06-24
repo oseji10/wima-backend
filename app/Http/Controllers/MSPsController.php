@@ -58,7 +58,7 @@ public function index(Request $request)
             $q->where('lga', (string) $community_lead->lga);
         });
 
-    } elseif ($user->role === 1 || $user->role === 3) {
+    } elseif ($user->role === 1 || $user->role === '1' || $user->role === 3 || $user->role === '3') {
         // Admin and National Coordinator can filter by state and LGA
        if ($state) {
     $query->whereHas('hub', function($q) use ($state) {
