@@ -60,16 +60,16 @@ public function index(Request $request)
 
     } elseif ($user->role === 1 || $user->role === 3) {
         // Admin and National Coordinator can filter by state and LGA
-        if ($state) {
-            $query->whereHas('hub', function($q) use ($state) {
-                $q->where('state', $state);
-            });
-        }
-        if ($lga) {
-            $query->whereHas('hub', function($q) use ($lga) {
-                $q->where('lga', $lga);
-            });
-        }
+       if ($state) {
+    $query->whereHas('hub', function($q) use ($state) {
+        $q->where('state', (string) $state);
+    });
+}
+if ($lga) {
+    $query->whereHas('hub', function($q) use ($lga) {
+        $q->where('lga', (string) $lga);
+    });
+}
     }
 
     // Project filtering for all roles
