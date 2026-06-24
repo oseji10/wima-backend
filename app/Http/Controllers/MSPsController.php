@@ -11,6 +11,9 @@ use Illuminate\Support\Facades\Auth;
 use App\Models\StateCoordinators;
 use App\Models\CommunityLead;
 use App\Models\Hubs;
+use App\Mail\UniqueCodeMail;
+use Illuminate\Support\Facades\Mail;
+
 
 // use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -240,201 +243,272 @@ public function index(Request $request)
 
 
     public function register(Request $request): JsonResponse
-    {
-        try {
-            // Validate request
-            $validator = Validator::make($request->all(), [
-                'fullName' => 'required|string|max:255',
-                'phoneNumber' => 'required|string|max:15|unique:users,phoneNumber|unique:msps,alternatePhoneNumber',
-                'email' => 'nullable|email|max:255|unique:users,email',
-                'age' => 'required|integer|min:18|max:120',
-                'gender' => 'nullable|string|in:Male,Female,Other',
-                'stateId' => 'required|numeric',
-                'lgaId' => 'required|numeric',
-                'trainingsAttended' => 'nullable|array',
-                'trainingsAttended.*' => 'string',
-            ], [
-                'phoneNumber.unique' => 'This phone number is already registered.',
-                'email.unique' => 'This email is already registered.',
-                'age.min' => 'You must be at least 18 years old.',
-                'age.max' => 'Age cannot exceed 120 years.',
-                'fullName.required' => 'Full name is required.',
-                'phoneNumber.required' => 'Phone number is required.',
-                'stateId.required' => 'Please select a state.',
-                'stateId.numeric' => 'Invalid state selection.',
-                'lgaId.required' => 'Please select an LGA.',
-                'lgaId.numeric' => 'Invalid LGA selection.',
-            ]);
+{
+    try {
+        // Validate request
+        $validator = Validator::make($request->all(), [
+            'fullName' => 'required|string|max:255',
+            'phoneNumber' => 'required|string|max:15|unique:users,phoneNumber|unique:msps,alternatePhoneNumber',
+            'email' => 'nullable|email|max:255|unique:users,email',
+            'age' => 'required|integer|min:18|max:120',
+            'gender' => 'nullable|string|in:Male,Female,Other',
+            'stateId' => 'required|numeric',
+            'lgaId' => 'required|numeric',
+            'year' => 'required|string',
+            'mspCategory' => 'required|string|in:Mechanic,Existing MSP,New MSP,CL,SubCL',
+            'trainingsAttended' => 'nullable|array',
+            'trainingsAttended.*' => 'string',
+        ], [
+            'phoneNumber.unique' => 'This phone number is already registered.',
+            'email.unique' => 'This email is already registered.',
+            'age.min' => 'You must be at least 18 years old.',
+            'age.max' => 'Age cannot exceed 120 years.',
+            'fullName.required' => 'Full name is required.',
+            'phoneNumber.required' => 'Phone number is required.',
+            'stateId.required' => 'Please select a state.',
+            'stateId.numeric' => 'Invalid state selection.',
+            'lgaId.required' => 'Please select an LGA.',
+            'lgaId.numeric' => 'Invalid LGA selection.',
+            'mspCategory.in' => 'Invalid MSP category selected.',
+        ]);
 
-            if ($validator->fails()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Validation failed',
-                    'errors' => $validator->errors()
-                ], 422);
-            }
-
-            DB::beginTransaction();
-
-            // Check if phone number already exists in users table
-            $existingUser = User::where('phoneNumber', $request->phoneNumber)->first();
-            if ($existingUser) {
-                DB::rollBack();
-                return response()->json([
-                    'success' => false,
-                    'message' => 'This phone number is already registered as a user.',
-                    'errors' => [
-                        'phoneNumber' => ['This phone number is already registered.']
-                    ]
-                ], 409);
-            }
-
-            // Check if phone number already exists as alternative number in msps table
-            $existingMSP = MSPs::where('alternatePhoneNumber', $request->phoneNumber)->first();
-            if ($existingMSP) {
-                DB::rollBack();
-                return response()->json([
-                    'success' => false,
-                    'message' => 'This phone number is already registered as an alternative number.',
-                    'errors' => [
-                        'phoneNumber' => ['This phone number is already registered as an alternative number.']
-                    ]
-                ], 409);
-            }
-
-            // Split full name
-            $nameParts = $this->splitFullName($request->fullName);
-
-            // Convert to integers
-            $stateId = (int) $request->stateId;
-            $lgaId = (int) $request->lgaId;
-
-            // Find the hub by LGA
-            $hub = Hubs::where('lga', $lgaId)
-                ->where('state', $stateId)
-                ->where('status', 'active')
-                ->first();
-
-            if (!$hub) {
-                DB::rollBack();
-                return response()->json([
-                    'success' => false,
-                    'message' => 'No active hub found for the selected location.',
-                    'errors' => [
-                        'lgaId' => ['The selected LGA is not active or does not exist.']
-                    ]
-                ], 422);
-            }
-
-            // 1. Create User
-            $user = User::create([
-                'firstName' => $nameParts['firstName'],
-                'lastName' => $nameParts['lastName'],
-                'otherNames' => $nameParts['otherNames'],
-                'phoneNumber' => $request->phoneNumber,
-                'email' => $request->email,
-                'password' => Hash::make('password'), // Default password
-                'role' => 2, // MSP role (adjust based on your role IDs)
-                // 'state' => $stateId,
-                // 'lga' => $lgaId,
-                // 'status' => 'active',
-            ]);
-
-            // Generate MSP ID
-            $mspId = MSPs::generateMspId();
-
-            // 2. Create MSP
-            $msp = MSPs::create([
-                'mspId' => $mspId,
-                // 'firstName' => $nameParts['firstName'],
-                // 'lastName' => $nameParts['lastName'],
-                // 'otherNames' => $nameParts['otherNames'],
-                // 'phoneNumber' => $request->phoneNumber,
-                'alternatePhoneNumber' => null, // This can be updated later if needed
-                // 'email' => $request->email,
-                'gender' => $request->gender,
-                'ageBracket' => $request->age,
-                // 'address' => $request->address ?? null,
-                // 'stateId' => $stateId,
-                // 'lgaId' => $lgaId,
-                'hub' => $hub->hubId,
-                'project' => 3, // Default project ID
-                'userId' => $user->id,
-                'trainings_attended' => json_encode($request->trainingsAttended ?? []),
-                'status' => 'active',
-                'addedBy' => $user->id,
-            ]);
-
-            DB::commit();
-
-            // Return success response
-            return response()->json([
-                'success' => true,
-                'message' => 'MSP registered successfully. Default password: password',
-                'data' => [
-                    'user' => [
-                        'id' => $user->id,
-                        'firstName' => $user->firstName,
-                        'lastName' => $user->lastName,
-                        'phoneNumber' => $user->phoneNumber,
-                        'email' => $user->email,
-                        'role' => $user->role,
-                    ],
-                    'msp' => [
-                        'mspId' => $msp->mspId,
-                        'fullName' => $nameParts['firstName'] . ' ' . $nameParts['lastName'],
-                        'phoneNumber' => $msp->phoneNumber,
-                        'alternatePhoneNumber' => $msp->alternatePhoneNumber,
-                        'email' => $msp->email,
-                        'age' => $msp->age,
-                        'gender' => $msp->gender,
-                        'stateId' => $msp->stateId,
-                        'lgaId' => $msp->lgaId,
-                        'trainingsAttended' => json_decode($msp->trainings_attended, true) ?? [],
-                        'status' => $msp->status,
-                    ]
-                ]
-            ], 201);
-
-        } catch (\Illuminate\Database\QueryException $e) {
-            DB::rollBack();
-            Log::error('Database error during MSP registration: ' . $e->getMessage(), [
-                'trace' => $e->getTraceAsString()
-            ]);
-
-            // Check for duplicate entry error
-            if ($e->getCode() === '23000') {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'An MSP with this phone number or email already exists in our system.',
-                    'errors' => [
-                        'phoneNumber' => ['This phone number or email is already registered.']
-                    ]
-                ], 409);
-            }
-
+        if ($validator->fails()) {
             return response()->json([
                 'success' => false,
-                'message' => 'Unable to complete registration due to a system error. Please try again.',
-                'error' => config('app.debug') ? $e->getMessage() : null
-            ], 500);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('MSP registration failed: ' . $e->getMessage(), [
-                'trace' => $e->getTraceAsString(),
-                'request_data' => $request->except(['password'])
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Registration failed. Please try again or contact support if the issue persists.',
-                'error' => config('app.debug') ? $e->getMessage() : null
-            ], 500);
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
         }
-    }
 
-    /**
+        DB::beginTransaction();
+
+        // Check if phone number already exists in users table
+        $existingUser = User::where('phoneNumber', $request->phoneNumber)->first();
+        if ($existingUser) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'This phone number is already registered as a user.',
+                'errors' => [
+                    'phoneNumber' => ['This phone number is already registered.']
+                ]
+            ], 409);
+        }
+
+        // Check if phone number already exists as alternative number in msps table
+        $existingMSP = MSPs::where('alternatePhoneNumber', $request->phoneNumber)->first();
+        if ($existingMSP) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'This phone number is already registered as an alternative number.',
+                'errors' => [
+                    'phoneNumber' => ['This phone number is already registered as an alternative number.']
+                ]
+            ], 409);
+        }
+
+        // Split full name
+        $nameParts = $this->splitFullName($request->fullName);
+
+        // Convert to integers
+        $stateId = (int) $request->stateId;
+        $lgaId = (int) $request->lgaId;
+
+        // Find the hub by LGA
+        $hub = Hubs::where('lga', $lgaId)
+            ->where('state', $stateId)
+            ->where('status', 'active')
+            ->first();
+
+        if (!$hub) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'No active hub found for the selected location.',
+                'errors' => [
+                    'lgaId' => ['The selected LGA is not active or does not exist.']
+                ]
+            ], 422);
+        }
+
+        // 1. Create User
+        $user = User::create([
+            'firstName' => $nameParts['firstName'],
+            'lastName' => $nameParts['lastName'],
+            'otherNames' => $nameParts['otherNames'],
+            'phoneNumber' => $request->phoneNumber,
+            'email' => $request->email,
+            'password' => Hash::make('password'), // Default password
+            'role' => 2, 
+        ]);
+
+        // Generate MSP ID
+        $mspId = MSPs::generateMspId();
+
+        // Generate 8-digit unique code for CL and SubCL
+        $uniqueCode = null;
+        $mspCategory = $request->mspCategory;
+        
+        if (in_array($mspCategory, ['CL', 'SubCL'])) {
+            $uniqueCode = $this->generateUniqueCode();
+            
+            // Ensure the code is truly unique
+            while (MSPs::where('code', $uniqueCode)->exists()) {
+                $uniqueCode = $this->generateUniqueCode();
+            }
+        }
+
+        // 2. Create MSP
+        $msp = MSPs::create([
+            'mspId' => $mspId,
+            'alternatePhoneNumber' => null, // This can be updated later if needed
+            'gender' => $request->gender,
+            'ageBracket' => $request->age,
+            'hub' => $hub->hubId,
+            'project' => 3, // Default project ID
+            'userId' => $user->id,
+            'trainings_attended' => json_encode($request->trainingsAttended ?? []),
+            'status' => 'active',
+            'addedBy' => $user->id,
+            'type' => $mspCategory,
+            'year' => $request->year,
+            'code' => $uniqueCode, // Store the generated code
+        ]);
+
+        // Send email with the unique code if CL or SubCL
+        if ($uniqueCode && $request->email) {
+            try {
+                $this->sendUniqueCodeEmail($request->email, $request->fullName, $uniqueCode, $mspCategory);
+            } catch (\Exception $e) {
+                // Log the error but don't fail the registration
+                Log::error('Failed to send unique code email: ' . $e->getMessage(), [
+                    'email' => $request->email,
+                    'mspId' => $msp->mspId,
+                    'category' => $mspCategory
+                ]);
+            }
+        }
+
+        DB::commit();
+
+        // Prepare response data
+        $responseData = [
+            'success' => true,
+            'message' => 'MSP attendance recorded successfully. Default password: password',
+            'data' => [
+                'user' => [
+                    'id' => $user->id,
+                    'firstName' => $user->firstName,
+                    'lastName' => $user->lastName,
+                    'phoneNumber' => $user->phoneNumber,
+                    'email' => $user->email,
+                    'role' => $user->role,
+                ],
+                'msp' => [
+                    'mspId' => $msp->mspId,
+                    'fullName' => $nameParts['firstName'] . ' ' . $nameParts['lastName'],
+                    'phoneNumber' => $msp->phoneNumber,
+                    'alternatePhoneNumber' => $msp->alternatePhoneNumber,
+                    'email' => $msp->email,
+                    'age' => $msp->age,
+                    'gender' => $msp->gender,
+                    'stateId' => $msp->stateId,
+                    'lgaId' => $msp->lgaId,
+                    'trainingsAttended' => json_decode($msp->trainings_attended, true) ?? [],
+                    'status' => $msp->status,
+                    'year' => $msp->year,
+                    'mspCategory' => $msp->type,
+                ]
+            ]
+        ];
+
+        // Add code to response if generated
+        if ($uniqueCode) {
+            $responseData['data']['msp']['code'] = $uniqueCode;
+            $responseData['message'] .= ' A unique code has been sent to your email.';
+        }
+
+        return response()->json($responseData, 201);
+
+    } catch (\Illuminate\Database\QueryException $e) {
+        DB::rollBack();
+        Log::error('Database error during MSP registration: ' . $e->getMessage(), [
+            'trace' => $e->getTraceAsString()
+        ]);
+
+        // Check for duplicate entry error
+        if ($e->getCode() === '23000') {
+            return response()->json([
+                'success' => false,
+                'message' => 'An MSP with this phone number or email already exists in our system.',
+                'errors' => [
+                    'phoneNumber' => ['This phone number or email is already registered.']
+                ]
+            ], 409);
+        }
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Unable to complete registration due to a system error. Please try again.',
+            'error' => config('app.debug') ? $e->getMessage() : null
+        ], 500);
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+        Log::error('MSP registration failed: ' . $e->getMessage(), [
+            'trace' => $e->getTraceAsString(),
+            'request_data' => $request->except(['password'])
+        ]);
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Registration failed. Please try again or contact support if the issue persists.',
+            'error' => config('app.debug') ? $e->getMessage() : null
+        ], 500);
+    }
+}
+
+/**
+ * Generate a unique 8-digit code
+ * 
+ * @return string
+ */
+private function generateUniqueCode(): string
+{
+    // Generate an 8-digit code with letters and numbers for better uniqueness
+    $characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    $code = '';
+    $length = 8;
+    
+    for ($i = 0; $i < $length; $i++) {
+        $code .= $characters[random_int(0, strlen($characters) - 1)];
+    }
+    
+    // Add a timestamp component to ensure uniqueness
+    $timestamp = now()->format('y');
+    $code = substr($code, 0, 6) . $timestamp;
+    
+    return $code;
+}
+
+
+private function sendUniqueCodeEmail(
+    string $email,
+    string $fullName,
+    string $code,
+    string $category
+): void {
+    Mail::to($email)->send(
+        new UniqueCodeMail(
+            $fullName,
+            $code,
+            $category
+        )
+    );
+}
+
+/**
      * Validate MSP by phone number
      * Checks both primary phone and alternative number
      */
@@ -468,7 +542,7 @@ public function index(Request $request)
             }
 
             // Check in MSPs table - primary phone number
-            $msp = MSPs::where('phoneNumber', $phoneNumber)->first();
+            $msp = MSPs::where('alternatePhoneNumber', $phoneNumber)->first();
             
             if ($msp) {
                 return response()->json([
@@ -510,6 +584,140 @@ public function index(Request $request)
             ], 500);
         }
     }
+
+
+
+    /**
+ * Verify CL/SubCL user by code or phone number
+ */
+public function verifyCLSubCL(Request $request): JsonResponse
+{
+    try {
+        $validator = Validator::make($request->all(), [
+            'identifier' => 'required|string',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        $identifier = $request->identifier;
+        $msp = null;
+        $user = null;
+        $userId = null;
+
+        // Check if identifier is a unique code (stored in MSPs table)
+        // Unique codes are typically alphanumeric and 8 characters
+        $isCode = preg_match('/^[A-Z0-9]{8}$/', $identifier);
+        
+        if ($isCode) {
+            // Search by code in MSPs table
+            $msp = MSPs::where('code', $identifier)
+                ->whereIn('type', ['CL', 'SubCL'])
+                // ->where('status', 'active')
+                ->first();
+            
+            if ($msp) {
+                // Get the associated user
+                $user = User::find($msp->userId);
+                $userId = $user ? $user->id : null;
+            }
+        } else {
+            // Search by phone number in Users table first
+            $user = User::where('phoneNumber', $identifier)->first();
+            
+            if ($user) {
+                // User found, now find their MSP record
+                $msp = MSPs::where('userId', $user->id)
+                    ->whereIn('type', ['CL', 'SubCL'])
+                    // ->where('status', 'active')
+                    ->first();
+                
+                if ($msp) {
+                    $userId = $user->id;
+                } else {
+                    // User exists but not as CL/SubCL
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'This phone number belongs to a user but they are not registered as CL or SubCL.',
+                    ], 404);
+                }
+            } else {
+                // If not found in Users table, try searching in MSPs table by alternatePhoneNumber
+                $msp = MSPs::where('alternatePhoneNumber', $identifier)
+                    ->whereIn('type', ['CL', 'SubCL'])
+                    ->where('status', 'active')
+                    ->first();
+                
+                if ($msp) {
+                    // Get the associated user
+                    $user = User::find($msp->userId);
+                    $userId = $user ? $user->id : null;
+                }
+            }
+        }
+
+        // If no MSP found after all searches
+        if (!$msp) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No CL/SubCL record found with the provided code or phone number.',
+            ], 404);
+        }
+
+        // If we still don't have a user ID, try to get it from MSP
+        if (!$userId && $msp) {
+            $user = User::find($msp->userId);
+            $userId = $user ? $user->id : null;
+        }
+
+        // // Get state and LGA info
+        // $state = null;
+        // $lga = null;
+        
+        // if ($msp) {
+        //     $state = States::find($msp->stateId);
+        //     $lga = LGAs::find($msp->lgaId);
+        // }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'CL/SubCL verified successfully.',
+            'data' => [
+                'userId' => $userId,
+                'fullname' => $user ? $user->firstName . ' ' . $user->lastName : '',
+                'phoneNumber' => $user ? $user->phoneNumber : ($msp->alternatePhoneNumber ?? ''),
+                'email' => $user->email ?? '',
+                'age' => $msp->ageBracket ?? '',
+                'gender' => $msp->gender ?? '',
+                'stateId' => (string) ($msp->stateId ?? ''),
+                'lgaId' => (string) ($msp->lgaId ?? ''),
+                // 'stateName' => $state ? $state->name : '',
+                // 'lgaName' => $lga ? $lga->name : '',
+                'mspCategory' => $msp->type ?? '',
+                'year' => $msp->year ?? '',
+                'code' => $msp->code ?? '',
+                'trainingsAttended' => json_decode($msp->trainings_attended, true) ?? [],
+                'verifiedBy' => $isCode ? 'code' : 'phone' // Track how they were verified
+            ]
+        ]);
+
+    } catch (\Exception $e) {
+        Log::error('CL/SubCL verification failed: ' . $e->getMessage(), [
+            'trace' => $e->getTraceAsString()
+        ]);
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Verification failed. Please try again.',
+            'error' => config('app.debug') ? $e->getMessage() : null
+        ], 500);
+    }
+}
 
     /**
      * Helper methods

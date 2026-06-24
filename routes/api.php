@@ -90,6 +90,7 @@ use App\Http\Controllers\SafeguardingController;
     
     Route::get('/validate-msp/{phoneNumber}', [MSPsController::class, 'validateMSP']);
     
+    Route::post('/verify-cl-subcl', [MSPsController::class, 'verifyCLSubCL']);
 
     Route::middleware(['auth.jwt'])->group(function () {
         Route::get('/user', function () {

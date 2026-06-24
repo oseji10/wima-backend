@@ -23,6 +23,9 @@ class MSPs extends Model
         'userId',
         'trainings_attended',
         'ageBracket',
+        'type',
+        'year',
+        'code',
     ];
     // protected $primaryKey = 'mspId';
     protected $hidden = [

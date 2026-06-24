@@ -396,6 +396,7 @@ public function store(Request $request)
                 'age' => 'required|integer|min:18|max:120',
                 'gender' => 'nullable|string|in:Male,Female',
                 'stateId' => 'required|integer',
+                'addedBy' => 'required|integer',
                 'lgaId' => 'required|integer',
                 'mechanizedServices' => 'nullable|array',
                 'mechanizedServices.*' => 'string',
@@ -447,6 +448,7 @@ public function store(Request $request)
         ], 422);
     }
 
+  
             // Create farmer
             $farmer = Farmers::create([
                 'farmerId' => $farmerId,
@@ -461,6 +463,7 @@ public function store(Request $request)
                 'stateId' => $request->stateId,
                 'hub' => $hub->hubId,
                 'project' => 3,
+                'addedBy' => $request->addedBy,
                 'mechanized_services' => $request->mechanizedServices ?? [],
                 'status' => 'active',
             ]);
@@ -486,6 +489,7 @@ public function store(Request $request)
             ], 500);
         }
     }
+
 
     
 

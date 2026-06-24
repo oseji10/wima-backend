@@ -28,6 +28,7 @@ class Farmers extends Model
         'project',
         'zohoCustomerId',
         'mechanized_services',
+        'addedBy',
 
     ];
     protected $primaryKey = 'id';
