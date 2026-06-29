@@ -8,13 +8,13 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('msps', function (Blueprint $table) {
-        $table->json('trainings_attended')->nullable();
-        $table->integer('ageBracket')->nullable();
-        $table->string('type')->nullable();
-        $table->string('year')->nullable();
-        $table->string('code')->nullable();
-        });
+        // Schema::table('msps', function (Blueprint $table) {
+        // $table->json('trainings_attended')->nullable();
+        // $table->integer('ageBracket')->nullable();
+        // $table->string('type')->nullable();
+        // $table->string('year')->nullable();
+        // $table->string('code')->nullable();
+        // });
     }
 
     public function down(): void

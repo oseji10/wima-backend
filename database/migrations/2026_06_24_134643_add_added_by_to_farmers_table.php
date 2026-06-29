@@ -11,10 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('farmers', function (Blueprint $table) {
-            $table->unsignedBigInteger('addedBy')->nullable();
-            $table->foreign('addedBy')->references('id')->on('users')->onDelete('cascade');
-        });
+        // Schema::table('farmers', function (Blueprint $table) {
+        //     $table->unsignedBigInteger('addedBy')->nullable();
+        //     $table->foreign('addedBy')->references('id')->on('users')->onDelete('cascade');
+        // });
     }
 
     /**

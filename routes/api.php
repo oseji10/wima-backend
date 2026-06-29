@@ -30,6 +30,7 @@ use App\Http\Controllers\AssetManagementController;
 use App\Http\Controllers\FinanceController;
 use App\Http\Controllers\MonitoringController;
 use App\Http\Controllers\HrController;
+use App\Http\Controllers\GoTractApplicationController;
 
 
 
@@ -92,6 +93,11 @@ use App\Http\Controllers\SafeguardingController;
     
     Route::post('/verify-cl-subcl', [MSPsController::class, 'verifyCLSubCL']);
 
+    Route::post('gotract/applications', [GoTractApplicationController::class, 'store'])
+    ->middleware('throttle:15,1');
+
+    
+
     Route::middleware(['auth.jwt'])->group(function () {
         Route::get('/user', function () {
             $user = auth()->user();
@@ -109,6 +115,10 @@ use App\Http\Controllers\SafeguardingController;
             ]);
         });
 
+         Route::get('gotract/applications', [GoTractApplicationController::class, 'index']);
+    Route::get('gotract/applications/{application}', [GoTractApplicationController::class, 'show']);
+    Route::patch('gotract/applications/{application}/status', [GoTractApplicationController::class, 'updateStatus']);
+    Route::get('gotract/stats', [GoTractApplicationController::class, 'stats']);
 
         Route::get('/dashboard', [AnalyticsController::class, 'dashboard']);
         Route::get('/transaction-analysis', [AnalyticsController::class, 'transactionAnalysis']);
