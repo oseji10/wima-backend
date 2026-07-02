@@ -79,26 +79,65 @@ class GoTractApplicationController extends Controller
     }
 
     /**
+     * Admin: move many applications through the workflow at once.
+     */
+    public function bulkStatus(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'ids'    => ['required', 'array', 'min:1'],
+            'ids.*'  => ['integer'],
+            'status' => ['required', Rule::in(config('gotract.statuses'))],
+        ]);
+
+        $updated = GoTractApplication::whereIn('id', $validated['ids'])
+            ->update(['status' => $validated['status']]);
+
+        return response()->json([
+            'message' => "{$updated} application(s) updated.",
+            'data'    => ['updated' => $updated, 'status' => $validated['status']],
+        ]);
+    }
+
+    /**
      * Admin: programme dashboard counts vs. targets.
      */
     public function stats(): JsonResponse
     {
-        $byLga = GoTractApplication::query()
-            ->selectRaw('lga, count(*) as total')
-            ->groupBy('lga')
-            ->pluck('total', 'lga');
+        // Single grouped query gives us both the overall status totals and the
+        // per-LGA-per-status breakdown used by the "Enrollment by LGA" analysis.
+        $rows = GoTractApplication::query()
+            ->selectRaw('lga, status, count(*) as total')
+            ->groupBy('lga', 'status')
+            ->get();
 
-        $byStatus = GoTractApplication::query()
-            ->selectRaw('status, count(*) as total')
-            ->groupBy('status')
-            ->pluck('total', 'status');
+        $byStatus = [];
+        $perLga = [];
+        foreach ($rows as $row) {
+            $count = (int) $row->total;
+            $byStatus[$row->status] = ($byStatus[$row->status] ?? 0) + $count;
+            $perLga[$row->lga][$row->status] = $count;
+            $perLga[$row->lga]['total'] = ($perLga[$row->lga]['total'] ?? 0) + $count;
+        }
+
+        $target   = (int) config('gotract.target_per_lga');
+        $statuses = config('gotract.statuses');
+
+        // One row per configured LGA so LGAs with no applications still appear.
+        $lgas = collect(config('gotract.lgas'))->map(function ($lga) use ($perLga, $statuses, $target) {
+            $counts = $perLga[$lga] ?? [];
+            $row = ['lga' => $lga, 'total' => $counts['total'] ?? 0, 'target' => $target];
+            foreach ($statuses as $status) {
+                $row[$status] = $counts[$status] ?? 0;
+            }
+            return $row;
+        })->values();
 
         return response()->json(['data' => [
-            'total'         => GoTractApplication::count(),
-            'targetPerLga'  => config('gotract.target_per_lga'),
-            'totalTarget'   => config('gotract.total_target'),
-            'byLga'         => $byLga,
-            'byStatus'      => $byStatus,
+            'total'        => GoTractApplication::count(),
+            'targetPerLga' => $target,
+            'totalTarget'  => config('gotract.total_target'),
+            'byStatus'     => $byStatus,
+            'lgas'         => $lgas,
         ]]);
     }
 }

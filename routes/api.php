@@ -115,7 +115,8 @@ use App\Http\Controllers\SafeguardingController;
             ]);
         });
 
-         Route::get('gotract/applications', [GoTractApplicationController::class, 'index']);
+    Route::get('gotract/applications', [GoTractApplicationController::class, 'index']);
+    Route::patch('gotract/applications/bulk-status', [GoTractApplicationController::class, 'bulkStatus']);
     Route::get('gotract/applications/{application}', [GoTractApplicationController::class, 'show']);
     Route::patch('gotract/applications/{application}/status', [GoTractApplicationController::class, 'updateStatus']);
     Route::get('gotract/stats', [GoTractApplicationController::class, 'stats']);

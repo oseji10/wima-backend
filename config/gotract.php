@@ -14,8 +14,8 @@
 return [
 
     // Beneficiary targets (from the GoTRACT proposal).
-    'target_per_lga' => 250,
-    'total_target'   => 2750,
+    'target_per_lga' => 40,
+    'total_target'   => 440,
 
     // The 11 Local Government Areas of Gombe State.
     'lgas' => [
@@ -40,7 +40,7 @@ return [
     'disability_types'  => ['Physical', 'Mental', 'Both', 'Other'],
 
     // Screening workflow states.
-    'statuses' => ['pending', 'screening', 'approved', 'rejected', 'enrolled'],
+    'statuses' => ['pending', 'screening', 'approved', 'rejected'],
 
     // Optional advisory age window for youth (not enforced by default).
     'youth_age_min' => 18,
