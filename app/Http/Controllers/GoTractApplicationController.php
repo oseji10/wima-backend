@@ -99,6 +99,76 @@ class GoTractApplicationController extends Controller
     }
 
     /**
+     * Public (token-gated), read-only oversight figures for government partners.
+     * Returns AGGREGATE data only — never any personal / identifying fields —
+     * so it can safely sit behind a shareable, login-less link.
+     */
+    public function oversight(Request $request): JsonResponse
+    {
+        $expected = config('gotract.oversight_token');
+        $provided = $request->query('token') ?: $request->bearerToken();
+
+        abort_if(
+            empty($expected) || ! is_string($provided) || ! hash_equals($expected, $provided),
+            403,
+            'Invalid or missing access token.'
+        );
+
+        $rows = GoTractApplication::query()
+            ->selectRaw('lga, status, count(*) as total')
+            ->groupBy('lga', 'status')
+            ->get();
+
+        $byStatus = [];
+        $perLga = [];
+        foreach ($rows as $row) {
+            $count = (int) $row->total;
+            $byStatus[$row->status] = ($byStatus[$row->status] ?? 0) + $count;
+            $perLga[$row->lga][$row->status] = $count;
+            $perLga[$row->lga]['total'] = ($perLga[$row->lga]['total'] ?? 0) + $count;
+        }
+
+        $target   = (int) config('gotract.target_per_lga');
+        $statuses = config('gotract.statuses');
+
+        $lgas = collect(config('gotract.lgas'))->map(function ($lga) use ($perLga, $statuses, $target) {
+            $counts = $perLga[$lga] ?? [];
+            $row = ['lga' => $lga, 'total' => $counts['total'] ?? 0, 'target' => $target];
+            foreach ($statuses as $status) {
+                $row[$status] = $counts[$status] ?? 0;
+            }
+            return $row;
+        })->values();
+
+        $total    = GoTractApplication::count();
+        $approved = $byStatus['approved'] ?? 0;
+
+        $gender = GoTractApplication::query()
+            ->selectRaw('gender, count(*) as total')
+            ->groupBy('gender')
+            ->pluck('total', 'gender');
+
+        $ageBands = [
+            '18-25' => GoTractApplication::whereBetween('age', [18, 25])->count(),
+            '26-35' => GoTractApplication::whereBetween('age', [26, 35])->count(),
+            '36+'   => GoTractApplication::where('age', '>=', 36)->count(),
+        ];
+
+        return response()->json(['data' => [
+            'generatedAt'  => now()->toIso8601String(),
+            'total'        => $total,
+            'approved'     => $approved,
+            'approvalRate' => $total ? (int) round(($approved / $total) * 100) : 0,
+            'targetPerLga' => $target,
+            'totalTarget'  => (int) config('gotract.total_target'),
+            'byStatus'     => $byStatus,
+            'gender'       => $gender,
+            'ageBands'     => $ageBands,
+            'lgas'         => $lgas,
+        ]]);
+    }
+
+    /**
      * Admin: programme dashboard counts vs. targets.
      */
     public function stats(): JsonResponse
@@ -138,6 +208,59 @@ class GoTractApplicationController extends Controller
             'totalTarget'  => config('gotract.total_target'),
             'byStatus'     => $byStatus,
             'lgas'         => $lgas,
+        ]]);
+    }
+
+    /**
+     * PUBLIC, read-only programme overview for government partners.
+     * Aggregate figures ONLY — no applicant records or personal data are
+     * exposed here, so it is safe behind a shareable link. An optional shared
+     * token (config gotract.public_token) keeps the link from being guessable.
+     */
+    public function publicOverview(Request $request): JsonResponse
+    {
+        $expected = config('gotract.public_token');
+        if ($expected && ! hash_equals((string) $expected, (string) $request->query('token'))) {
+            abort(403, 'Invalid or missing access token.');
+        }
+
+        $rows = GoTractApplication::query()
+            ->selectRaw('lga, status, count(*) as total')
+            ->groupBy('lga', 'status')
+            ->get();
+
+        $byStatus = [];
+        $perLga = [];
+        foreach ($rows as $row) {
+            $count = (int) $row->total;
+            $byStatus[$row->status] = ($byStatus[$row->status] ?? 0) + $count;
+            $perLga[$row->lga][$row->status] = $count;
+            $perLga[$row->lga]['total'] = ($perLga[$row->lga]['total'] ?? 0) + $count;
+        }
+
+        $byGender = GoTractApplication::query()
+            ->selectRaw('gender, count(*) as total')
+            ->groupBy('gender')
+            ->pluck('total', 'gender');
+
+        $target = (int) config('gotract.target_per_lga');
+
+        $lgas = collect(config('gotract.lgas'))->map(fn ($lga) => [
+            'lga'      => $lga,
+            'total'    => $perLga[$lga]['total'] ?? 0,
+            'approved' => $perLga[$lga]['approved'] ?? 0,
+            'target'   => $target,
+        ])->values();
+
+        return response()->json(['data' => [
+            'total'         => GoTractApplication::count(),
+            'approvedTotal' => $byStatus['approved'] ?? 0,
+            'byStatus'      => $byStatus,
+            'byGender'      => $byGender,
+            'targetPerLga'  => $target,
+            'totalTarget'   => (int) config('gotract.total_target'),
+            'lgas'          => $lgas,
+            'generatedAt'   => now()->toIso8601String(),
         ]]);
     }
 }

@@ -42,6 +42,10 @@ return [
     // Screening workflow states.
     'statuses' => ['pending', 'screening', 'approved', 'rejected'],
 
+    // Secret token gating the public, read-only government oversight page.
+    // Set GOTRACT_OVERSIGHT_TOKEN in .env to a long random string.
+    'oversight_token' => env('GOTRACT_OVERSIGHT_TOKEN'),
+
     // Optional advisory age window for youth (not enforced by default).
     'youth_age_min' => 18,
     'youth_age_max' => 35,
