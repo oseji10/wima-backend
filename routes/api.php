@@ -93,10 +93,8 @@ use App\Http\Controllers\SafeguardingController;
     
     Route::post('/verify-cl-subcl', [MSPsController::class, 'verifyCLSubCL']);
 
-    Route::post('gotract/applications', [GoTractApplicationController::class, 'store'])
-    ->middleware('throttle:15,1');
-    Route::get('gotract/oversight', [GoTractApplicationController::class, 'oversight'])
-    ->middleware('throttle:60,1');
+    Route::post('gotract/applications', [GoTractApplicationController::class, 'store']);
+    Route::get('gotract/oversight', [GoTractApplicationController::class, 'oversight']);
 
     
 
