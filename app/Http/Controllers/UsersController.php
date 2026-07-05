@@ -34,7 +34,7 @@ public function index(Request $request)
     // roles you want to exclude
     $excludedRoles = [0];
 
-    $query = User::with('user_role', 'state_coordinator.state', 'community_lead.lga_info.state')
+    $query = User::with('user_role', 'state_coordinator.state', 'community_lead.lga_info.state', 'msp.hub.lga_info.state', 'msp.hub.states')
           ->orderBy('id', 'desc')
         ->whereNotIn('role', $excludedRoles);
 

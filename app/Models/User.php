@@ -86,4 +86,10 @@ class User extends Authenticatable implements JWTSubject
             return $this->hasOne(CommunityLead::class, 'userId', 'id');
         }
 
+          public function msp()
+        {
+            return $this->hasOne(MSPs::class, 'userId', 'id');
+        }
+
+
 }
