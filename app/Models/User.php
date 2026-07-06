@@ -30,6 +30,7 @@ class User extends Authenticatable implements JWTSubject
         'state',
         'lga',
         'status',
+        'registeredBy',
     ];
     protected $dates = ['deleted_at'];
     protected $hidden = ['password'];
@@ -89,6 +90,12 @@ class User extends Authenticatable implements JWTSubject
           public function msp()
         {
             return $this->hasOne(MSPs::class, 'userId', 'id');
+        }
+
+
+        public function gotract_partner()
+        {
+            return $this->hasOne(GotractPartners::class, 'userId', 'id');
         }
 
 

@@ -9,21 +9,98 @@ use App\Models\GoTractApplication;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use App\Models\Farmers;
+use App\Models\State;  
+use App\Models\Hubs;  
+use Illuminate\Support\Facades\Log;
 
+use Illuminate\Support\Facades\DB;
 class GoTractApplicationController extends Controller
 {
     /**
      * Public: submit a new GoTRACT application.
      */
-    public function store(StoreGoTractApplicationRequest $request): JsonResponse
-    {
-        $application = GoTractApplication::create($request->mappedData());
+   
 
-        return (new GoTractApplicationResource($application))
-            ->additional(['message' => 'Application submitted successfully.'])
-            ->response()
-            ->setStatusCode(201);
-    }
+
+public function store(StoreGoTractApplicationRequest $request): JsonResponse
+{
+    $application = DB::transaction(function () use ($request) {
+        $application = GoTractApplication::create($request->mappedData());
+        $this->syncFarmerFromApplication($application);
+        return $application;
+    });
+
+    return (new GoTractApplicationResource($application))
+        ->additional(['message' => 'Application submitted successfully.'])
+        ->response()
+        ->setStatusCode(201);
+}
+
+protected function syncFarmerFromApplication(GoTractApplication $application): void
+{
+    $name = $this->splitFullName($application->full_name);
+
+    // --- adjust these two lookups to your schema ---
+    $stateId = \App\Models\State::where('stateName', $application->state)->value('stateId');
+    $hub     = \App\Models\Hubs::where('lga', $application->lga)->first(); // however hubs map to LGA
+    // -----------------------------------------------
+try {
+    // Dedupe on phone so a re-submission updates rather than duplicates.
+    $farmer = Farmers::updateOrCreate(
+        ['phoneNumber' => $application->phone_number],
+        [
+            'farmerId'         => $application->reference_id, // reuse the GoTRACT ref, or your own scheme
+            'farmerFirstName'  => $name['firstName'],
+            'farmerLastName'   => $name['lastName'],
+            'farmerOtherNames' => $name['otherNames'],
+            'phoneNumber'      => $application->phone_number,
+            'email'            => $application->email,
+            'gender'           => $application->gender,
+            'age'              => $application->age,
+            'ageBracket'       => $this->ageBracket($application->age),
+            'stateId'          => $stateId,
+            'hub'              => $hub?->hubId,
+            'project'          => 4, // GoTRACT project id — better as config('gotract.project_id')
+            'addedBy'          => null, // public submission
+            'status'           => 'active',
+        ]
+    );
+        Log::info('GoTRACT farmer created', ['farmer' => $farmer->getKey()]);
+        } catch (\Throwable $e) {
+    Log::error('GoTRACT farmer create FAILED', ['msg' => $e->getMessage()]);
+    throw $e; // let it surface while debugging
+}
+
+}
+
+protected function splitFullName(?string $fullName): array
+{
+    $parts = array_values(array_filter(preg_split('/\s+/', trim((string) $fullName))));
+    $count = count($parts);
+
+    if ($count === 0) return ['firstName' => '', 'lastName' => '', 'otherNames' => ''];
+    if ($count === 1) return ['firstName' => $parts[0], 'lastName' => '', 'otherNames' => ''];
+
+    return [
+        'firstName'  => $parts[0],
+        'lastName'   => $parts[$count - 1],
+        'otherNames' => $count > 2 ? implode(' ', array_slice($parts, 1, $count - 2)) : '',
+    ];
+}
+
+protected function ageBracket(?int $age): string
+{
+    $age = (int) $age;
+    return match (true) {
+        $age <= 0  => 'Unknown',
+        $age <= 17 => 'Under 18',
+        $age <= 25 => '18-25',
+        $age <= 35 => '26-35',
+        $age <= 45 => '36-45',
+        default    => '46+',
+    };
+}
 
     /**
      * Admin: paginated, filterable list of applications.

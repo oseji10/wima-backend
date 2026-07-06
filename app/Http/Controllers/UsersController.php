@@ -34,7 +34,7 @@ public function index(Request $request)
     // roles you want to exclude
     $excludedRoles = [0];
 
-    $query = User::with('user_role', 'state_coordinator.state', 'community_lead.lga_info.state', 'msp.hub.lga_info.state', 'msp.hub.states')
+    $query = User::with('user_role', 'state_coordinator.state', 'gotract_partner.state', 'community_lead.lga_info.state', 'msp.hub.lga_info.state', 'msp.hub.states')
           ->orderBy('id', 'desc')
         ->whereNotIn('role', $excludedRoles);
 
@@ -82,6 +82,7 @@ public function createUser(Request $request)
         'email' => $request->email,
         'password' => Hash::make($password),
         'role' => $request->role,
+        'registeredBy' => auth()->user()->id, // Assuming the authenticated user is the one creating this user
     ]);
 
     // Handle role-specific data
