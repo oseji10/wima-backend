@@ -11,6 +11,7 @@ class MSPs extends Model
 
     public $table = 'msps';
     protected $fillable = [
+        'id',
         'mspId',
         'firstName',
         'lastName',
@@ -26,6 +27,20 @@ class MSPs extends Model
         'type',
         'year',
         'code',
+        // --- added for CAC onboarding ---
+        'alternatePhoneNumber',
+        'nin',
+        'cac_cohort',
+        'cac_valid_id_type',
+        'cac_valid_id_path',
+        'cac_passport_path',
+        'cac_signature_path',
+        'cac_business_address',
+        'cac_business_name_1',
+        'cac_business_name_2',
+        'cac_business_name_3',
+        'cac_submitted_at',
+        'cac_status',
     ];
     // protected $primaryKey = 'mspId';
     protected $hidden = [
@@ -36,34 +51,39 @@ class MSPs extends Model
     protected $casts = [
         'trainings_attended' => 'array',
         'ageBracket' => 'integer',
+        'cac_submitted_at' => 'datetime',
     ];
+
+    protected $primaryKey = 'mspId';
+     public $incrementing = false;
+     protected $keyType = 'string';
 
     public function states()
     {
         return $this->belongsTo(State::class, 'state', 'stateId');
-    } 
+    }
 
-     public function lgas()
+    public function lgas()
     {
         return $this->belongsTo(Lgas::class, 'lga', 'lgaId');
-    } 
+    }
 
-     public function hub()
+    public function hub()
     {
         return $this->belongsTo(Hubs::class, 'hub', 'hubId');
-    } 
+    }
 
-      public function users()
+    public function users()
     {
         return $this->belongsTo(User::class, 'userId', 'id');
-    } 
+    }
 
-      public function projects()
+    public function projects()
     {
         return $this->belongsTo(Project::class, 'project', 'projectId');
-    } 
+    }
 
-     public function hubs()
+    public function hubs()
     {
         return $this->belongsTo(Hubs::class, 'hub', 'hubId');
     }

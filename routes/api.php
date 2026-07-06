@@ -31,7 +31,7 @@ use App\Http\Controllers\FinanceController;
 use App\Http\Controllers\MonitoringController;
 use App\Http\Controllers\HrController;
 use App\Http\Controllers\GoTractApplicationController;
-
+use App\Http\Controllers\MspCacController;
 
 
 use App\Http\Controllers\SecurityController;
@@ -98,6 +98,8 @@ use App\Http\Controllers\SafeguardingController;
     Route::get('gotract/lga-availability', [GoTractApplicationController::class, 'lgaAvailability'])
     ->middleware('throttle:60,1');
     
+    Route::post('msps/cac-registration', [MspCacController::class, 'store'])
+    ->middleware('throttle:15,1');
 
     Route::middleware(['auth.jwt'])->group(function () {
         Route::get('/user', function () {
