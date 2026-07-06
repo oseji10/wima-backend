@@ -99,6 +99,34 @@ class GoTractApplicationController extends Controller
     }
 
     /**
+     * Public: which LGAs are still accepting applications. Capacity counts
+     * only — no personal data — so the application form can grey out full LGAs.
+     */
+    public function lgaAvailability(): JsonResponse
+    {
+        $cap = (int) config('gotract.application_cap_per_lga');
+
+        $counts = GoTractApplication::query()
+            ->selectRaw('lga, count(*) as total')
+            ->groupBy('lga')
+            ->pluck('total', 'lga');
+
+        $lgas = collect(config('gotract.lgas'))->map(function ($lga) use ($counts, $cap) {
+            $received = (int) ($counts[$lga] ?? 0);
+            $remaining = $cap > 0 ? max(0, $cap - $received) : null;
+            return [
+                'lga'       => $lga,
+                'cap'       => $cap,
+                'received'  => $received,
+                'remaining' => $remaining,
+                'open'      => $cap <= 0 || $received < $cap,
+            ];
+        })->values();
+
+        return response()->json(['data' => $lgas]);
+    }
+
+    /**
      * Public (token-gated), read-only oversight figures for government partners.
      * Returns AGGREGATE data only — never any personal / identifying fields —
      * so it can safely sit behind a shareable, login-less link.

@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Models\GoTractApplication;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -83,6 +84,27 @@ class StoreGoTractApplicationRequest extends FormRequest
             'preferredServices.min' => 'Select at least one mechanization service.',
             'trainingAreas.min'     => 'Select at least one training area.',
         ];
+    }
+
+    /**
+     * Stop accepting applications once an LGA reaches its cap.
+     */
+    public function withValidator($validator): void
+    {
+        $validator->after(function ($validator) {
+            $lga = $this->input('lga');
+            $cap = (int) config('gotract.application_cap_per_lga');
+
+            if ($lga && $cap > 0) {
+                $received = GoTractApplication::where('lga', $lga)->count();
+                if ($received >= $cap) {
+                    $validator->errors()->add(
+                        'lga',
+                        "Applications for {$lga} have reached the maximum for this programme. Please contact the programme office."
+                    );
+                }
+            }
+        });
     }
 
     /**

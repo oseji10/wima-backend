@@ -95,7 +95,8 @@ use App\Http\Controllers\SafeguardingController;
 
     Route::post('gotract/applications', [GoTractApplicationController::class, 'store']);
     Route::get('gotract/oversight', [GoTractApplicationController::class, 'oversight']);
-
+    Route::get('gotract/lga-availability', [GoTractApplicationController::class, 'lgaAvailability'])
+    ->middleware('throttle:60,1');
     
 
     Route::middleware(['auth.jwt'])->group(function () {
