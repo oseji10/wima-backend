@@ -98,8 +98,21 @@ use App\Http\Controllers\SafeguardingController;
     Route::get('gotract/lga-availability', [GoTractApplicationController::class, 'lgaAvailability'])
     ->middleware('throttle:60,1');
     
-    Route::post('msps/cac-registration', [MspCacController::class, 'store'])
+   Route::post('msps/cac-registration', [MspCacController::class, 'store'])
     ->middleware('throttle:15,1');
+ 
+// Public — prefill lookup by phone number.
+Route::get('msps/cac-lookup', [MspCacController::class, 'lookup'])
+    ->middleware('throttle:30,1');
+ 
+// Public — reference data for the form's state/LGA dropdowns.
+Route::get('msps/cac-states', [MspCacController::class, 'states'])->middleware('throttle:60,1');
+Route::get('msps/cac-lgas', [MspCacController::class, 'lgas'])->middleware('throttle:60,1');
+ 
+// Public — prefill lookup by phone (checks users + msps).
+Route::get('msps/lookup', [MspCacController::class, 'lookup'])
+    ->middleware('throttle:30,1');
+
 
     Route::middleware(['auth.jwt'])->group(function () {
         Route::get('/user', function () {

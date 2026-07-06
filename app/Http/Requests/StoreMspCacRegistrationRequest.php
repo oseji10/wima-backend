@@ -15,26 +15,29 @@ class StoreMspCacRegistrationRequest extends FormRequest
     public function rules(): array
     {
         return [
-            // Identity (used to match the MSP in the msps table)
-            'cohort'      => ['required', Rule::in(['Year 1', 'Year 2'])],
-            'fullName'    => ['required', 'string', 'max:255'],
             'phoneNumber' => ['required', 'digits:11'],
+            'email'       => ['nullable', 'email', 'max:255'],
+
+            // Bio data (matches the msps table)
+            'firstName'   => ['required', 'string', 'max:255'],
+            'lastName'    => ['required', 'string', 'max:255'],
+            'otherNames'  => ['nullable', 'string', 'max:255'],
+            'gender'      => ['required', Rule::in(['Male', 'Female'])],
+            'dateOfBirth' => ['nullable', 'date', 'before:today', 'after:1900-01-01'],
+            'state'       => ['required'],
+            'lga'         => ['required'],
+            'cohort'      => ['required', Rule::in(['Year 1', 'Year 2'])],
             'nin'         => ['required', 'digits:11'],
 
-            // 2. Valid ID
-            'validIdType' => ['required', Rule::in(['passport', 'drivers_license', 'voters_card', 'national_id'])],
-            'validId'     => ['required', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:5120'], // 5 MB
+            // Documents — nullable here; "required unless already on file" is
+            // enforced in the controller so returning MSPs needn't re-upload.
+            'validIdType'   => ['required', Rule::in(['passport', 'drivers_license', 'voters_card', 'national_id'])],
+            'validId'       => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:5120'],
+            'passportPhoto' => ['nullable', 'file', 'mimes:jpg,jpeg,png', 'max:5120'],
+            'signature'     => ['nullable', 'file', 'mimes:jpg,jpeg,png', 'max:5120'],
 
-            // 3. Passport photo
-            'passportPhoto' => ['required', 'file', 'mimes:jpg,jpeg,png', 'max:5120'],
-
-            // 4. Scanned signature
-            'signature' => ['required', 'file', 'mimes:jpg,jpeg,png', 'max:5120'],
-
-            // 5. Business address
+            // Business
             'businessAddress' => ['required', 'string', 'max:500'],
-
-            // 6. Three proposed business names
             'businessName1' => ['required', 'string', 'max:255', 'different:businessName2', 'different:businessName3'],
             'businessName2' => ['required', 'string', 'max:255', 'different:businessName3'],
             'businessName3' => ['required', 'string', 'max:255'],

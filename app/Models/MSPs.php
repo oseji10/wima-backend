@@ -11,7 +11,6 @@ class MSPs extends Model
 
     public $table = 'msps';
     protected $fillable = [
-        'id',
         'mspId',
         'firstName',
         'lastName',
@@ -28,6 +27,10 @@ class MSPs extends Model
         'year',
         'code',
         // --- added for CAC onboarding ---
+        'state',
+        'lga',
+        'age',
+        'dateOfBirth',
         'alternatePhoneNumber',
         'nin',
         'cac_cohort',
@@ -51,12 +54,10 @@ class MSPs extends Model
     protected $casts = [
         'trainings_attended' => 'array',
         'ageBracket' => 'integer',
+        'age' => 'integer',
+        'dateOfBirth' => 'date',
         'cac_submitted_at' => 'datetime',
     ];
-
-    protected $primaryKey = 'mspId';
-     public $incrementing = false;
-     protected $keyType = 'string';
 
     public function states()
     {
