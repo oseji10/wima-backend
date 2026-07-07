@@ -21,7 +21,7 @@ return [
     // stops accepting new submissions. Defaults to the per-LGA target — raise it
     // via GOTRACT_APPLICATION_CAP if you want a screening buffer (collect more
     // applications than slots, then approve the best 40).
-    'application_cap_per_lga' => (int) env('GOTRACT_APPLICATION_CAP', 60),
+    'application_cap_per_lga' => (int) env('GOTRACT_APPLICATION_CAP', 65),
 
     // The 11 Local Government Areas of Gombe State.
     'lgas' => [
