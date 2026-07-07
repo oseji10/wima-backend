@@ -14,8 +14,8 @@
 return [
 
     // Beneficiary targets (from the GoTRACT proposal).
-    'target_per_lga' => 60,
-    'total_target'   => 660, // 11 LGAs * 60 beneficiaries each
+    'target_per_lga' => 65,
+    'total_target'   => 715, // 11 LGAs * 65 beneficiaries each
 
     // Applications per LGA are capped at this number; once reached, that LGA
     // stops accepting new submissions. Defaults to the per-LGA target — raise it
