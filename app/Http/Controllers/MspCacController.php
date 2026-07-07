@@ -24,7 +24,7 @@ class MspCacController extends Controller
     /**
      * TODO: set these to match your system before going live.
      */
-    private const MSP_ROLE       = 'MSP';
+    private const MSP_ROLE       = 2;
     private const MSP_PROJECT_ID = 4;
 
     /* ------------------------- Reference data -------------------------- */
