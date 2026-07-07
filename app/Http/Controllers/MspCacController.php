@@ -145,7 +145,7 @@ class MspCacController extends Controller
                         // 'state'        => $data['state'],
                         // 'lga'          => $data['lga'],
                         'password'     => Hash::make($phone),
-                        'status'       => 'active',
+                        // 'status'       => 'active',
                         // 'registeredBy' => 'cac-self-service',
                     ]);
                 } elseif ($email && $user->email !== $email) {
