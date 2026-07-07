@@ -112,7 +112,7 @@ Route::get('msps/cac-lgas', [MspCacController::class, 'lgas'])->middleware('thro
 // Public — prefill lookup by phone (checks users + msps).
 Route::get('msps/lookup', [MspCacController::class, 'lookup'])
     ->middleware('throttle:30,1');
-
+Route::get('msps/cac-name-check', [MspCacController::class, 'checkName'])->middleware('throttle:120,1');
 
     Route::middleware(['auth.jwt'])->group(function () {
         Route::get('/user', function () {

@@ -98,6 +98,18 @@ class MspCacController extends Controller
 
         [$user, $msp] = $this->resolveMsp($phone);
 
+        // Email is unique on users — reject early with a clean message instead of
+        // letting the insert blow up with a 500 unique-constraint error.
+        if ($email) {
+            $emailOwner = User::where('email', $email)->first();
+            if ($emailOwner && (! $user || $emailOwner->id !== $user->id)) {
+                return response()->json([
+                    'message' => 'That email is already registered to another account.',
+                    'errors'  => ['email' => ['This email is already in use. Please use a different one.']],
+                ], 422);
+            }
+        }
+
         // --- Date of birth + age (kept if already on file) ---
         $dob = null;
         $age = null;
@@ -159,7 +171,7 @@ class MspCacController extends Controller
                         'mspId'   => MSPs::generateMspId(),
                         'userId'  => $user->id,
                         'project' => self::MSP_PROJECT_ID,
-                        'addedBy' => $user->id, // or 'cac-self-service' if you prefer
+                        'addedBy' => $user->id,
                     ]);
                 } elseif (! $msp->userId) {
                     $msp->userId = $user->id;
@@ -183,7 +195,7 @@ class MspCacController extends Controller
                     'alternatePhoneNumber' => $phone,
                     'nin'                  => $data['nin'],
                     'cac_cohort'           => $data['cohort'],
-                    'year'                 => $data['cohort'],
+                    'year'           => $data['cohort'],
                     'cac_valid_id_type'    => $data['validIdType'],
                     'cac_valid_id_path'    => $validIdPath,
                     'cac_passport_path'    => $passportPath,
@@ -195,6 +207,8 @@ class MspCacController extends Controller
                     'cac_submitted_at'     => now(),
                     'cac_status'           => 'submitted',
                 ]);
+                // $msp->save();
+                $msp->setConnection('mysql_direct');
                 $msp->save();
 
                 return [$msp, $code, $freshCode];
@@ -275,4 +289,26 @@ class MspCacController extends Controller
         }
         return $existing;
     }
+
+
+    public function checkName(Request $request): JsonResponse
+{
+    $request->validate(['name' => ['required', 'string', 'max:255']]);
+
+    $name  = strtolower(trim($request->query('name')));
+    $phone = $request->query('phone'); // exclude the current MSP's own names
+
+    $query = MSPs::query()->where(function ($q) use ($name) {
+        $q->whereRaw('LOWER(cac_business_name_1) = ?', [$name])
+          ->orWhereRaw('LOWER(cac_business_name_2) = ?', [$name])
+          ->orWhereRaw('LOWER(cac_business_name_3) = ?', [$name]);
+    });
+
+    if ($phone) {
+        $query->where('alternatePhoneNumber', '!=', $phone);
+    }
+
+    return response()->json(['taken' => $query->exists()]);
+}
+
 }
