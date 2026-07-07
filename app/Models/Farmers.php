@@ -68,6 +68,6 @@ class Farmers extends Model
     {
         $latest = self::orderBy('id', 'desc')->first();
         $number = $latest ? intval(substr($latest->farmerId, 2)) + 1 : 1;
-        return 'FM' . str_pad($number, 6, '0', STR_PAD_LEFT);
+        return 'FM' . str_pad($number, 7, '0', STR_PAD_LEFT);
     }
 }
