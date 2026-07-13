@@ -16,7 +16,7 @@ return [
     // Beneficiary targets (from the GoTRACT proposal).
     'target_per_lga' => 65,
     'total_target'   => 715, // 11 LGAs * 65 beneficiaries each
-
+    
     // Applications per LGA are capped at this number; once reached, that LGA
     // stops accepting new submissions. Defaults to the per-LGA target — raise it
     // via GOTRACT_APPLICATION_CAP if you want a screening buffer (collect more
@@ -55,4 +55,31 @@ return [
     // Optional advisory age window for youth (not enforced by default).
     'youth_age_min' => 18,
     'youth_age_max' => 35,
+
+
+    // Scan types.
+    'scan_types' => ['attendance', 'meal'],
+ 
+    // Sessions the scanner offers. Training runs across days; each day has an
+    // attendance session and its meal sittings. Edit to match the programme.
+    'sessions' => [
+        'attendance' => [
+            'day-1' => 'Day 1 — Attendance',
+            'day-2' => 'Day 2 — Attendance',
+        ],
+        'meal' => [
+            'day-1-breakfast' => 'Day 1 — Breakfast',
+            'day-1-lunch'     => 'Day 1 — Lunch',
+            'day-2-breakfast' => 'Day 2 — Breakfast',
+            'day-2-lunch'     => 'Day 2 — Lunch',
+        ],
+    ],
+ 
+    // Who may be accredited at the desk. Everyone starts as `pending`, so the
+    // desk accepts any of these; only `rejected` applicants are turned away.
+    'accreditable_statuses' => ['pending', 'screening', 'approved'],
+ 
+    // Accrediting a participant marks them approved (they showed up and were
+    // verified at the desk). Set to null to leave the status untouched.
+    'status_on_accreditation' => 'approved',
 ];

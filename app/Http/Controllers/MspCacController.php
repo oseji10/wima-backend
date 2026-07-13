@@ -18,6 +18,7 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Http;
 
 class MspCacController extends Controller
 {
@@ -309,6 +310,46 @@ class MspCacController extends Controller
     }
 
     return response()->json(['taken' => $query->exists()]);
+}
+
+
+
+public function suggestNames(Request $request): JsonResponse
+{
+    $request->validate(['name' => ['nullable', 'string', 'max:255']]);
+    $input = trim($request->input('name')) ?: 'agriculture business';
+
+    $apiKey = config('services.anthropic.key');
+    if (! $apiKey) {
+        return response()->json(['suggestions' => []]); // AI not configured
+    }
+
+    $prompt = "A Nigerian applicant proposed \"{$input}\" as a business name for CAC "
+        . "(Corporate Affairs Commission) registration. CAC rejects names that are merely a "
+        . "generic activity or common word (e.g. \"Farming\", \"Poultry\", \"Fishing\"). A valid "
+        . "name needs a DISTINCTIVE element (a coined word, place, or personal name), optionally a "
+        . "descriptor, and a suffix like \"Enterprises\", \"Ventures\", \"Global Services\", or "
+        . "\"Nigeria\". Keep the applicant's line of business. Respond with ONLY a JSON array of 3 "
+        . "distinctive, CAC-ready business name strings — no prose.";
+
+    try {
+        $resp = Http::withHeaders([
+            'x-api-key' => $apiKey,
+            'anthropic-version' => '2023-06-01',
+            'content-type' => 'application/json',
+        ])->timeout(20)->post('https://api.anthropic.com/v1/messages', [
+            'model' => config('services.anthropic.model', 'claude-3-5-haiku-latest'),
+            'max_tokens' => 300,
+            'messages' => [['role' => 'user', 'content' => $prompt]],
+        ]);
+
+        $text = trim(preg_replace('/```json|```/', '', data_get($resp->json(), 'content.0.text', '[]')));
+        $list = array_slice(array_values(array_filter(array_map('strval', (array) json_decode($text, true)))), 0, 3);
+
+        return response()->json(['suggestions' => $list]);
+    } catch (\Throwable $e) {
+        return response()->json(['suggestions' => []]);
+    }
 }
 
 }

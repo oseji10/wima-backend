@@ -37,7 +37,8 @@ use App\Http\Controllers\MspCacController;
 use App\Http\Controllers\SecurityController;
 use App\Http\Controllers\SafeguardingController;
 
-
+use App\Http\Controllers\GoTractAccreditationController;
+use App\Http\Controllers\GoTractBadgeController;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -113,6 +114,7 @@ Route::get('msps/cac-lgas', [MspCacController::class, 'lgas'])->middleware('thro
 Route::get('msps/lookup', [MspCacController::class, 'lookup'])
     ->middleware('throttle:30,1');
 Route::get('msps/cac-name-check', [MspCacController::class, 'checkName'])->middleware('throttle:120,1');
+Route::post('msps/cac-name-suggest', [MspCacController::class, 'suggestNames'])->middleware('throttle:30,1');
 
     Route::middleware(['auth.jwt'])->group(function () {
         Route::get('/user', function () {
@@ -130,6 +132,21 @@ Route::get('msps/cac-name-check', [MspCacController::class, 'checkName'])->middl
                 'message' => 'User authenticated successfully',
             ]);
         });
+
+           // --- Blank badge pool (pre-printing) ---
+    Route::post('gotract/badges/generate', [GoTractBadgeController::class, 'generate']);
+    Route::get('gotract/badges/sheet',     [GoTractBadgeController::class, 'sheet']);
+    Route::get('gotract/badges/batches',   [GoTractBadgeController::class, 'batches']);
+    Route::get('gotract/badges/stats',     [GoTractBadgeController::class, 'stats']);
+    Route::post('gotract/badges/assign',   [GoTractBadgeController::class, 'assign']);
+    Route::post('gotract/badges/unassign', [GoTractBadgeController::class, 'unassign']);
+ 
+    // --- Accreditation desk + scanning ---
+    Route::get('gotract/accreditation/search', [GoTractAccreditationController::class, 'search']);
+    Route::post('gotract/accreditation/{application}/accredit', [GoTractAccreditationController::class, 'accredit']);
+    Route::post('gotract/accreditation/scan', [GoTractAccreditationController::class, 'scan']);
+    Route::get('gotract/accreditation/stats', [GoTractAccreditationController::class, 'stats']);
+
 
      Route::get('gotract/applications', [GoTractApplicationController::class, 'index']);
     Route::patch('gotract/applications/bulk-status', [GoTractApplicationController::class, 'bulkStatus']);

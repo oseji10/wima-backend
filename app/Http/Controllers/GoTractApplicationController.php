@@ -181,7 +181,8 @@ protected function ageBracket(?int $age): string
      */
     public function lgaAvailability(): JsonResponse
     {
-        $cap = (int) config('gotract.application_cap_per_lga');
+        // $cap = (int) config('gotract.application_cap_per_lga');
+        $cap = config("gotract.application_caps.{$lga}", 0);
 
         $counts = GoTractApplication::query()
             ->selectRaw('lga, count(*) as total')

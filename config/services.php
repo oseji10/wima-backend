@@ -39,5 +39,9 @@ return [
         'api_url' => env('MONIEPOINT_API_URL', 'https://api.pos.moniepoint.com/v1/transactions'),
     ],
 
+    'anthropic' => [
+    'key'   => env('ANTHROPIC_API_KEY'),
+    'model' => env('ANTHROPIC_MODEL', 'claude-3-5-haiku-latest'),
+],
 
 ];
