@@ -134,7 +134,7 @@ Route::post('msps/cac-name-suggest', [MspCacController::class, 'suggestNames'])-
         });
 
            // --- Blank badge pool (pre-printing) ---
-    Route::post('gotract/badges/generate', [GoTractBadgeController::class, 'generate']);
+     Route::post('gotract/badges/generate', [GoTractBadgeController::class, 'generate']);
     Route::get('gotract/badges/sheet',     [GoTractBadgeController::class, 'sheet']);
     Route::get('gotract/badges/batches',   [GoTractBadgeController::class, 'batches']);
     Route::get('gotract/badges/stats',     [GoTractBadgeController::class, 'stats']);
@@ -143,10 +143,10 @@ Route::post('msps/cac-name-suggest', [MspCacController::class, 'suggestNames'])-
  
     // --- Accreditation desk + scanning ---
     Route::get('gotract/accreditation/search', [GoTractAccreditationController::class, 'search']);
+    Route::get('gotract/accreditation/accredited', [GoTractAccreditationController::class, 'accredited']);
     Route::post('gotract/accreditation/{application}/accredit', [GoTractAccreditationController::class, 'accredit']);
     Route::post('gotract/accreditation/scan', [GoTractAccreditationController::class, 'scan']);
     Route::get('gotract/accreditation/stats', [GoTractAccreditationController::class, 'stats']);
-
 
      Route::get('gotract/applications', [GoTractApplicationController::class, 'index']);
     Route::patch('gotract/applications/bulk-status', [GoTractApplicationController::class, 'bulkStatus']);

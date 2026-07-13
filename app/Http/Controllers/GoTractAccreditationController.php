@@ -147,6 +147,29 @@ class GoTractAccreditationController extends Controller
     }
 
     /**
+     * Desk: the log of everyone accredited so far (most recent first).
+     */
+    public function accredited(Request $request): JsonResponse
+    {
+        $accredited = GoTractApplication::query()
+            ->whereNotNull('accredited_at')
+            ->when($request->filled('lga'), fn ($q) => $q->where('lga', $request->input('lga')))
+            ->when($request->filled('search'), function ($q) use ($request) {
+                $term = $request->input('search');
+                $q->where(function ($w) use ($term) {
+                    $w->where('full_name', 'like', "%{$term}%")
+                        ->orWhere('phone_number', 'like', "%{$term}%")
+                        ->orWhere('reference_id', 'like', "%{$term}%");
+                });
+            })
+            ->orderByDesc('accredited_at')
+            ->paginate($request->integer('per_page', 10))
+            ->through(fn ($a) => $this->participantPayload($a));
+
+        return response()->json($accredited);
+    }
+
+    /**
      * Live counters for the desk / scanner screens.
      */
     public function stats(Request $request): JsonResponse
@@ -161,12 +184,34 @@ class GoTractAccreditationController extends Controller
             ? GoTractScan::where('type', $type)->where('session', $session)->count()
             : null;
 
+        // Per-LGA: registered (accreditable) vs actually accredited.
+        $allowed = config('gotract.accreditable_statuses', ['pending', 'screening', 'approved']);
+
+        $registeredByLga = GoTractApplication::query()
+            ->whereIn('status', $allowed)
+            ->selectRaw('lga, count(*) as total')
+            ->groupBy('lga')
+            ->pluck('total', 'lga');
+
+        $accreditedByLga = GoTractApplication::query()
+            ->whereNotNull('accredited_at')
+            ->selectRaw('lga, count(*) as total')
+            ->groupBy('lga')
+            ->pluck('total', 'lga');
+
+        $lgas = collect(config('gotract.lgas', []))->map(fn ($lga) => [
+            'lga'        => $lga,
+            'registered' => (int) ($registeredByLga[$lga] ?? 0),
+            'accredited' => (int) ($accreditedByLga[$lga] ?? 0),
+        ])->values();
+
         return response()->json(['data' => [
             'eligible'      => $eligible,
             'accredited'    => $accredited,
             'pending'       => max(0, $eligible - $accredited),
             'sessionCount'  => $sessionCount,
             'sessions'      => config('gotract.sessions'),
+            'lgas'          => $lgas,
         ]]);
     }
 
