@@ -27,7 +27,7 @@ public function store(StoreGoTractApplicationRequest $request): JsonResponse
 {
     $application = DB::transaction(function () use ($request) {
         $application = GoTractApplication::create($request->mappedData());
-        $this->syncFarmerFromApplication($application);
+        // $this->syncFarmerFromApplication($application);
         return $application;
     });
 
