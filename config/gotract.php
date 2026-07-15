@@ -14,14 +14,14 @@
 return [
 
     // Beneficiary targets (from the GoTRACT proposal).
-    'target_per_lga' => 90,
-    'total_target'   => 990, // 11 LGAs * 90 beneficiaries each
+    'target_per_lga' => 150, // 11 LGAs * 150 beneficiaries each
+    'total_target'   => 1650, // 11 LGAs * 150 beneficiaries each
 
     // Applications per LGA are capped at this number; once reached, that LGA
     // stops accepting new submissions. Defaults to the per-LGA target — raise it
     // via GOTRACT_APPLICATION_CAP if you want a screening buffer (collect more
     // applications than slots, then approve the best 40).
-    'application_cap_per_lga' => (int) env('GOTRACT_APPLICATION_CAP', 90),
+    'application_cap_per_lga' => (int) env('GOTRACT_APPLICATION_CAP', 150),
 
     // The 11 Local Government Areas of Gombe State.
     'lgas' => [
