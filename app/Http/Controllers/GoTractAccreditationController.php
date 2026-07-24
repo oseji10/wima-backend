@@ -150,12 +150,14 @@ class GoTractAccreditationController extends Controller
     /**
      * Desk: the log of everyone accredited so far (most recent first).
      */
-      public function accredited(Request $request): JsonResponse
+public function accredited(Request $request): JsonResponse
 {
-    $accredited = GoTractBadge::query()
-        ->join('gotract_applications', 'gotract_badges.application_id', '=', 'gotract_applications.id')
+    $accredited = GoTractApplication::query()
+        ->join('gotract_badges', 'gotract_applications.id', '=', 'gotract_badges.application_id')
         ->select('gotract_applications.*')
-        ->when($request->filled('lga'), fn ($q) => $q->where('gotract_applications.lga', $request->input('lga')))
+        ->when($request->filled('lga'), fn ($q) =>
+            $q->where('gotract_applications.lga', $request->input('lga'))
+        )
         ->when($request->filled('search'), function ($q) use ($request) {
             $term = $request->input('search');
 
@@ -165,9 +167,10 @@ class GoTractAccreditationController extends Controller
                     ->orWhere('gotract_applications.reference_id', 'like', "%{$term}%");
             });
         })
-        ->orderByDesc('gotract_badges.id') // or accredited_at if badges have it
+        ->distinct()
+        ->orderByDesc('gotract_badges.id')
         ->paginate($request->integer('per_page', 10))
-        ->through(fn ($a) => $this->participantPayload($a));
+        ->through(fn (GoTractApplication $a) => $this->participantPayload($a));
 
     return response()->json($accredited);
 }
