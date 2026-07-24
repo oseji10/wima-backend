@@ -153,19 +153,19 @@ class GoTractAccreditationController extends Controller
    public function accredited(Request $request): JsonResponse
 {
     $accredited = GoTractBadge::query()
-        ->join('applications', 'go_tract_badges.application_id', '=', 'applications.id')
-        ->select('applications.*')
-        ->when($request->filled('lga'), fn ($q) => $q->where('applications.lga', $request->input('lga')))
+        ->join('gotract_applications', 'gotract_badges.application_id', '=', 'gotract_applications.id')
+        ->select('gotract_applications.*')
+        ->when($request->filled('lga'), fn ($q) => $q->where('gotract_applications.lga', $request->input('lga')))
         ->when($request->filled('search'), function ($q) use ($request) {
             $term = $request->input('search');
 
             $q->where(function ($w) use ($term) {
-                $w->where('applications.full_name', 'like', "%{$term}%")
-                    ->orWhere('applications.phone_number', 'like', "%{$term}%")
-                    ->orWhere('applications.reference_id', 'like', "%{$term}%");
+                $w->where('gotract_applications.full_name', 'like', "%{$term}%")
+                    ->orWhere('gotract_applications.phone_number', 'like', "%{$term}%")
+                    ->orWhere('gotract_applications.reference_id', 'like', "%{$term}%");
             });
         })
-        ->orderByDesc('go_tract_badges.created_at') // or accredited_at if badges have it
+        ->orderByDesc('gotract_badges.created_at') // or accredited_at if badges have it
         ->paginate($request->integer('per_page', 10))
         ->through(fn ($a) => $this->participantPayload($a));
 
