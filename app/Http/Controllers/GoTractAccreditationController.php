@@ -150,7 +150,7 @@ class GoTractAccreditationController extends Controller
     /**
      * Desk: the log of everyone accredited so far (most recent first).
      */
-   public function accredited(Request $request): JsonResponse
+      public function accredited(Request $request): JsonResponse
 {
     $accredited = GoTractBadge::query()
         ->join('gotract_applications', 'gotract_badges.application_id', '=', 'gotract_applications.id')
@@ -165,7 +165,7 @@ class GoTractAccreditationController extends Controller
                     ->orWhere('gotract_applications.reference_id', 'like', "%{$term}%");
             });
         })
-        ->orderByDesc('gotract_badges.created_at') // or accredited_at if badges have it
+        ->orderByDesc('gotract_badges.id') // or accredited_at if badges have it
         ->paginate($request->integer('per_page', 10))
         ->through(fn ($a) => $this->participantPayload($a));
 
