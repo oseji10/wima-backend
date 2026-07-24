@@ -150,25 +150,27 @@ class GoTractAccreditationController extends Controller
     /**
      * Desk: the log of everyone accredited so far (most recent first).
      */
-    public function accredited(Request $request): JsonResponse
-    {
-        $accredited = GoTractApplication::query()
-            ->whereNotNull('accredited_at')
-            ->when($request->filled('lga'), fn ($q) => $q->where('lga', $request->input('lga')))
-            ->when($request->filled('search'), function ($q) use ($request) {
-                $term = $request->input('search');
-                $q->where(function ($w) use ($term) {
-                    $w->where('full_name', 'like', "%{$term}%")
-                        ->orWhere('phone_number', 'like', "%{$term}%")
-                        ->orWhere('reference_id', 'like', "%{$term}%");
-                });
-            })
-            ->orderByDesc('accredited_at')
-            ->paginate($request->integer('per_page', 10))
-            ->through(fn ($a) => $this->participantPayload($a));
+   public function accredited(Request $request): JsonResponse
+{
+    $accredited = GoTractBadge::query()
+        ->join('applications', 'go_tract_badges.application_id', '=', 'applications.id')
+        ->select('applications.*')
+        ->when($request->filled('lga'), fn ($q) => $q->where('applications.lga', $request->input('lga')))
+        ->when($request->filled('search'), function ($q) use ($request) {
+            $term = $request->input('search');
 
-        return response()->json($accredited);
-    }
+            $q->where(function ($w) use ($term) {
+                $w->where('applications.full_name', 'like', "%{$term}%")
+                    ->orWhere('applications.phone_number', 'like', "%{$term}%")
+                    ->orWhere('applications.reference_id', 'like', "%{$term}%");
+            });
+        })
+        ->orderByDesc('go_tract_badges.created_at') // or accredited_at if badges have it
+        ->paginate($request->integer('per_page', 10))
+        ->through(fn ($a) => $this->participantPayload($a));
+
+    return response()->json($accredited);
+}
 
     /**
      * Live counters for the desk / scanner screens.
