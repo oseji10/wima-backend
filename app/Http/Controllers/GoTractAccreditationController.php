@@ -175,7 +175,8 @@ class GoTractAccreditationController extends Controller
     public function stats(Request $request): JsonResponse
     {
         $eligible   = GoTractApplication::whereIn('status', config('gotract.accreditable_statuses', ['pending', 'screening', 'approved']))->count();
-        $accredited = GoTractApplication::whereNotNull('accredited_at')->count();
+        // $accredited = GoTractApplication::whereNotNull('accredited_at')->count();
+        $accredited = GoTractBadge::whereNotNull('application_id')->count();
 
         $session = $request->query('session');
         $type    = $request->query('type');
@@ -193,11 +194,18 @@ class GoTractAccreditationController extends Controller
             ->groupBy('lga')
             ->pluck('total', 'lga');
 
-        $accreditedByLga = GoTractApplication::query()
-            ->whereNotNull('accredited_at')
-            ->selectRaw('lga, count(*) as total')
-            ->groupBy('lga')
-            ->pluck('total', 'lga');
+        // $accreditedByLga = GoTractApplication::query()
+        //     ->whereNotNull('accredited_at')
+        //     ->selectRaw('lga, count(*) as total')
+        //     ->groupBy('lga')
+        //     ->pluck('total', 'lga');
+
+
+            $accreditedByLga = GoTractBadge::query()
+    ->join('gotract_applications', 'gotract_badges.application_id', '=', 'gotract_applications.id')
+    ->selectRaw('gotract_applications.lga, COUNT(*) as total')
+    ->groupBy('gotract_applications.lga')
+    ->pluck('total', 'gotract_applications.lga');
 
         $lgas = collect(config('gotract.lgas', []))->map(fn ($lga) => [
             'lga'        => $lga,
