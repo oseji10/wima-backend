@@ -167,7 +167,7 @@ public function accredited(Request $request): JsonResponse
                     ->orWhere('gotract_applications.reference_id', 'like', "%{$term}%");
             });
         })
-        ->distinct()
+        // ->distinct()
         ->orderByDesc('gotract_badges.id')
         ->paginate($request->integer('per_page', 10))
         ->through(fn (GoTractApplication $a) => $this->participantPayload($a));
