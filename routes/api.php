@@ -133,6 +133,11 @@ Route::post('msps/cac-name-suggest', [MspCacController::class, 'suggestNames'])-
             ]);
         });
 
+        Route::get('/msps/cac-submissions', [MspCacController::class, 'adminIndex']);
+        Route::get('/msps/cac-submissions/export', [MspCacController::class, 'exportSubmissions']);
+    Route::get('/msps/cac-submissions/{msp}', [MspCacController::class, 'adminShow']);
+    Route::patch('/msps/cac-submissions/{msp}/status', [MspCacController::class, 'updateStatus']);
+
            // --- Blank badge pool (pre-printing) ---
      Route::post('gotract/badges/generate', [GoTractBadgeController::class, 'generate']);
     Route::get('gotract/badges/sheet',     [GoTractBadgeController::class, 'sheet']);

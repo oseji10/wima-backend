@@ -44,6 +44,10 @@ class MSPs extends Model
         'cac_business_name_3',
         'cac_submitted_at',
         'cac_status',
+        'cac_approved_name',
+        'cac_admin_note',
+        'cac_reviewed_at',
+        'cac_reviewed_by'
     ];
     // protected $primaryKey = 'mspId';
     protected $hidden = [

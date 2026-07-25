@@ -20,6 +20,10 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Http;
 
+use App\Exports\CacSubmissionsExport;
+use Maatwebsite\Excel\Facades\Excel;
+
+
 class MspCacController extends Controller
 {
     /**
@@ -350,6 +354,87 @@ public function suggestNames(Request $request): JsonResponse
     } catch (\Throwable $e) {
         return response()->json(['suggestions' => []]);
     }
+}
+
+
+
+/* ------------------------- Admin: list submissions ------------------------- */
+
+public function adminIndex(Request $request): JsonResponse
+{
+    $query = MSPs::query()
+        ->whereNotNull('cac_business_name_1') // only actual submissions
+        ->with(['users:id,firstName,lastName,phoneNumber,email', 'states', 'lgas', 'projects']);
+
+    if ($status = $request->query('status')) {
+        $query->where('cac_status', $status);
+    }
+    if ($state = $request->query('state')) {
+        $query->where('state', $state);
+    }
+    if ($cohort = $request->query('cohort')) {
+        $query->where('cac_cohort', $cohort);
+    }
+    if ($search = $request->query('search')) {
+        $query->where(function ($q) use ($search) {
+            $q->where('cac_business_name_1', 'like', "%{$search}%")
+              ->orWhere('cac_business_name_2', 'like', "%{$search}%")
+              ->orWhere('cac_business_name_3', 'like', "%{$search}%")
+              ->orWhere('alternatePhoneNumber', 'like', "%{$search}%")
+              ->orWhereHas('users', function ($uq) use ($search) {
+                  $uq->where('firstName', 'like', "%{$search}%")
+                     ->orWhere('lastName', 'like', "%{$search}%");
+              });
+        });
+    }
+
+    $perPage = (int) $request->query('per_page', 10);
+    $page = $query->orderByDesc('cac_submitted_at')->paginate($perPage);
+
+    return response()->json($page);
+}
+
+public function adminShow(MSPs $msp): JsonResponse
+{
+    $msp->load(['users:id,firstName,lastName,phoneNumber,email', 'states', 'lgas', 'projects']);
+
+    return response()->json([
+        'data' => array_merge($msp->toArray(), [
+            'validIdUrl'   => $msp->cac_valid_id_path ? Storage::disk('public')->url($msp->cac_valid_id_path) : null,
+            'passportUrl'  => $msp->cac_passport_path ? Storage::disk('public')->url($msp->cac_passport_path) : null,
+            'signatureUrl' => $msp->cac_signature_path ? Storage::disk('public')->url($msp->cac_signature_path) : null,
+        ]),
+    ]);
+}
+
+public function updateStatus(Request $request, MSPs $msp): JsonResponse
+{
+    $data = $request->validate([
+        'status'       => ['required', 'in:submitted,approved,rejected,needs_revision'],
+        'approvedName' => ['nullable', 'integer', 'in:1,2,3', 'required_if:status,approved'],
+        'adminNote'    => ['nullable', 'string', 'max:1000'],
+    ]);
+
+    $msp->fill([
+        'cac_status'         => $data['status'],
+        'cac_approved_name'  => $data['approvedName'] ?? null,
+        'cac_admin_note'     => $data['adminNote'] ?? null,
+        'cac_reviewed_at'    => now(),
+        'cac_reviewed_by'    => $request->user()?->id,
+    ]);
+    $msp->setConnection('mysql_direct');
+    $msp->save();
+
+    return response()->json(['message' => 'Status updated.', 'data' => $msp]);
+}
+
+
+
+
+public function exportSubmissions(Request $request)
+{
+    $filters = $request->only(['status', 'search']);
+    return Excel::download(new CacSubmissionsExport($filters), 'cac-submissions-' . now()->format('Y-m-d') . '.xlsx');
 }
 
 }
