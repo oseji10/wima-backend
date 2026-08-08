@@ -76,3 +76,11 @@ Route::get('/cac_documents/{filename}', function ($filename) {
     return response()->file($path);
 });
 
+Route::get('/gotract/{filename}', function ($filename) {
+    $path = storage_path('app/public/gotract/' . $filename);
+    if (!file_exists($path)) {
+        abort(404);
+    }
+    return response()->file($path);
+});
+

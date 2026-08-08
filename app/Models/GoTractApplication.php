@@ -170,4 +170,10 @@ class GoTractApplication extends Model
             'breakdown' => $breakdown,
         ];
     }
+
+
+    public function badge()
+{
+    return $this->hasOne(GoTractBadge::class, 'application_id');
+}
 }

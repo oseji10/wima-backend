@@ -154,7 +154,7 @@ public function accredited(Request $request): JsonResponse
 {
     $accredited = GoTractApplication::query()
         ->join('gotract_badges', 'gotract_applications.id', '=', 'gotract_badges.application_id')
-        ->select('gotract_applications.*')
+        ->select('gotract_applications.*', 'gotract_badges.assigned_at as badge_assigned_at')
         ->when($request->filled('lga'), fn ($q) =>
             $q->where('gotract_applications.lga', $request->input('lga'))
         )
@@ -235,6 +235,7 @@ public function accredited(Request $request): JsonResponse
      * Badge / scanner payload. No NIN, BVN or bank details — a scanner screen
      * is held up in public, so it only shows what's needed to identify someone.
      */
+    
     protected function participantPayload(GoTractApplication $a, ?string $serial = null): array
     {
         $serial = $serial ?: optional(
@@ -251,7 +252,8 @@ public function accredited(Request $request): JsonResponse
             'gender'       => $a->gender,
             'status'       => $a->status,
             'badgeSerial'  => $serial,
-            'accreditedAt' => optional($a->accredited_at)->toIso8601String(),
+            'accreditedAt' => $a->badge_assigned_at,
+            // 'accreditedAt' => optional($a->accredited_at)->toIso8601String(),
             'isAccredited' => (bool) $a->accredited_at,
         ];
     }

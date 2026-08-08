@@ -32,6 +32,8 @@ use App\Http\Controllers\MonitoringController;
 use App\Http\Controllers\HrController;
 use App\Http\Controllers\GoTractApplicationController;
 use App\Http\Controllers\MspCacController;
+use App\Http\Controllers\GoTractEquipmentAdminController;
+use App\Http\Controllers\GoTractEquipmentPortalController;
 
 
 use App\Http\Controllers\SecurityController;
@@ -39,6 +41,10 @@ use App\Http\Controllers\SafeguardingController;
 
 use App\Http\Controllers\GoTractAccreditationController;
 use App\Http\Controllers\GoTractBadgeController;
+
+use App\Http\Controllers\RequisitionController;
+use App\Http\Controllers\VendorController;
+
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -116,6 +122,44 @@ Route::get('msps/lookup', [MspCacController::class, 'lookup'])
 Route::get('msps/cac-name-check', [MspCacController::class, 'checkName'])->middleware('throttle:120,1');
 Route::post('msps/cac-name-suggest', [MspCacController::class, 'suggestNames'])->middleware('throttle:30,1');
 
+
+//         Route::middleware('throttle:60,1')->group(function () {
+//     Route::post('gotract/equipment/verify', [GoTractEquipmentPortalController::class, 'verify']);
+//     Route::get('gotract/equipment/catalog', [GoTractEquipmentPortalController::class, 'catalog']);
+//     Route::get('gotract/equipment/mine', [GoTractEquipmentPortalController::class, 'mine']);
+//     Route::post('gotract/equipment/individual/request', [GoTractEquipmentPortalController::class, 'requestIndividual']);
+//     Route::post('gotract/equipment/cooperative/create', [GoTractEquipmentPortalController::class, 'cooperativeCreate']);
+//     Route::post('gotract/equipment/cooperative/join', [GoTractEquipmentPortalController::class, 'cooperativeJoin']);
+//     Route::post('gotract/equipment/cooperative/{cooperative}/request', [GoTractEquipmentPortalController::class, 'cooperativeRequest']);
+// });
+
+
+Route::prefix('gotract/equipment')->group(function () {
+    // Public endpoints
+    Route::post('/verify', [GoTractEquipmentPortalController::class, 'verify']);
+    Route::get('/catalog', [GoTractEquipmentPortalController::class, 'catalog']);
+    
+    // Authenticated endpoints (require phone verification)
+    Route::get('/mine', [GoTractEquipmentPortalController::class, 'mine']);
+    
+    // Individual equipment requests
+    Route::post('/individual/request', [GoTractEquipmentPortalController::class, 'requestIndividual']);
+    Route::put('/individual/{loan}', [GoTractEquipmentPortalController::class, 'updateIndividual']);
+    Route::delete('/individual/{loan}', [GoTractEquipmentPortalController::class, 'cancelIndividual']);
+    
+    // Cooperative management
+    Route::post('/cooperative/create', [GoTractEquipmentPortalController::class, 'cooperativeCreate']);
+    Route::post('/cooperative/join', [GoTractEquipmentPortalController::class, 'cooperativeJoin']);
+    
+    // Cooperative equipment requests - ADD THIS ROUTE
+    Route::post('/cooperative/request', [GoTractEquipmentPortalController::class, 'cooperativeRequest']);
+     Route::put('/cooperative/request/{request}', [GoTractEquipmentPortalController::class, 'updateCooperativeRequest']);
+    Route::delete('/cooperative/request/{request}', [GoTractEquipmentPortalController::class, 'cancelCooperativeRequest']);
+});
+ 
+
+
+
     Route::middleware(['auth.jwt'])->group(function () {
         Route::get('/user', function () {
             $user = auth()->user();
@@ -132,6 +176,41 @@ Route::post('msps/cac-name-suggest', [MspCacController::class, 'suggestNames'])-
                 'message' => 'User authenticated successfully',
             ]);
         });
+
+
+        Route::prefix('gotract/equipment-admin')->group(function () {
+    Route::get('stats', [GoTractEquipmentAdminController::class, 'stats']);
+ 
+    Route::get('catalog', [GoTractEquipmentAdminController::class, 'indexEquipment']);
+    Route::post('catalog', [GoTractEquipmentAdminController::class, 'storeEquipment']);
+    Route::patch('catalog/{equipment}', [GoTractEquipmentAdminController::class, 'updateEquipment']);
+ 
+    Route::get('individual-loans', [GoTractEquipmentAdminController::class, 'indexIndividualLoans']);
+    Route::patch('individual-loans/{loan}', [GoTractEquipmentAdminController::class, 'updateIndividualLoan']);
+ 
+    Route::get('cooperatives', [GoTractEquipmentAdminController::class, 'indexCooperatives']);
+    Route::patch('cooperatives/{cooperative}', [GoTractEquipmentAdminController::class, 'updateCooperative']);
+});
+
+  // Vendors — full CRUD (index/store already existed; show/update/destroy were missing)
+    Route::get('/vendors', [VendorController::class, 'index']);
+    Route::get('/vendors/{vendor}', [VendorController::class, 'show']);
+    Route::post('/vendors', [VendorController::class, 'store']);
+    Route::put('/vendors/{vendor}', [VendorController::class, 'update']);
+    Route::delete('/vendors/{vendor}', [VendorController::class, 'destroy']);
+ 
+    // Requisitions — all-requisitions admin view (was missing; index() only ever
+    // returned the logged-in user's own requests)
+    Route::get('/requisitions/all', [RequisitionController::class, 'allIndex']);
+
+        Route::get('/requisitions/dashboard', [RequisitionController::class, 'dashboard']);
+    Route::get('/requisitions/my-approvals', [RequisitionController::class, 'myApprovals']);
+    Route::get('/requisitions', [RequisitionController::class, 'index']);
+    Route::post('/requisitions', [RequisitionController::class, 'store']);
+    Route::get('/requisitions/{req}', [RequisitionController::class, 'show']);
+    Route::post('/requisitions/{req}/decide', [RequisitionController::class, 'decide']);
+    Route::post('/requisitions/{req}/mark-paid', [RequisitionController::class, 'markPaid']);
+
 
         Route::get('/msps/cac-submissions', [MspCacController::class, 'adminIndex']);
         Route::get('/msps/cac-submissions/export', [MspCacController::class, 'exportSubmissions']);
