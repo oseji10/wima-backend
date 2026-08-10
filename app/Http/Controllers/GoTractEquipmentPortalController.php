@@ -45,7 +45,7 @@ class GoTractEquipmentPortalController extends Controller
     {
         $items = GoTractEquipment::where('is_active', true)
             ->orderBy('category')
-            ->orderBy('name')
+            ->orderBy('id')
             ->get();
 
         return response()->json(['data' => $items->map(fn ($e) => [
