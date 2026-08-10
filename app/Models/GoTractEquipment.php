@@ -10,7 +10,7 @@ class GoTractEquipment extends Model
 
     protected $fillable = [
         'name', 'description', 'type', 'group_size', 'image_url',
-        'total_quantity', 'available_quantity', 'unit', 'is_active',
+        'total_quantity', 'available_quantity', 'unit', 'is_active', 'category',
     ];
 
     protected $casts = [

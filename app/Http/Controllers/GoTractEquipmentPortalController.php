@@ -39,79 +39,76 @@ class GoTractEquipmentPortalController extends Controller
 
     /**
      * Equipment catalog with live availability and purchase tracking.
+     * Grouped by category for frontend display.
      */
-    /**
- * Equipment catalog with live availability and purchase tracking.
- */
-public function catalog(): JsonResponse
-{
-    $items = GoTractEquipment::where('is_active', true)->orderBy('type')->orderBy('name')->get();
+    public function catalog(): JsonResponse
+    {
+        $items = GoTractEquipment::where('is_active', true)
+            ->orderBy('category')
+            ->orderBy('name')
+            ->get();
 
-    return response()->json(['data' => $items->map(fn ($e) => [
-        'id'                => $e->id,
-        'name'              => $e->name,
-        'description'       => $e->description,
-        'image_url'         => $e->image_url,
-        'type'              => $e->type,
-        'groupSize'         => $e->group_size,
-        'unit'              => $e->unit,
-        'availableQuantity' => $e->available_quantity,
-        'totalQuantity'     => $e->total_quantity, // Added this
-        'totalPurchased'    => $e->total_quantity - $e->available_quantity,
-    ])]);
-}
+        return response()->json(['data' => $items->map(fn ($e) => [
+            'id'                => $e->id,
+            'name'              => $e->name,
+            'description'       => $e->description,
+            'image_url'         => $e->image_url,
+            'type'              => $e->type,
+            'category'          => $e->category ?? 'Other', // Added category
+            'groupSize'         => $e->group_size,
+            'unit'              => $e->unit,
+            'availableQuantity' => $e->available_quantity,
+            'totalQuantity'     => $e->total_quantity,
+            'totalPurchased'    => $e->total_quantity - $e->available_quantity,
+        ])]);
+    }
 
     /**
      * Everything this participant is currently involved in.
      */
- /**
- * Everything this participant is currently involved in.
- */
-public function mine(Request $request): JsonResponse
-{
-    $application = $this->resolveOrFail($request);
+    public function mine(Request $request): JsonResponse
+    {
+        $application = $this->resolveOrFail($request);
 
-    $individualLoans = GoTractIndividualLoan::with('equipment')
-        ->where('application_id', $application->id)
-        ->orderByDesc('created_at')
-        ->get()
-        ->map(fn ($l) => $this->individualLoanPayload($l));
-
-    // Get the cooperative the user belongs to
-    $membership = GoTractCooperativeMember::where('application_id', $application->id)
-        ->whereHas('cooperative', fn ($q) => $q->whereIn('status', GoTractCooperative::ACTIVE_STATUSES))
-        ->with('cooperative')
-        ->first();
-
-    $cooperative = null;
-    $cooperativeRequests = [];
-
-    if ($membership) {
-        $coop = $membership->cooperative;
-        $cooperative = $this->cooperativePayload($coop, $application);
-        
-        // Get all requests for this cooperative
-        $cooperativeRequests = GoTractCooperativeRequest::with('equipment')
-            ->where('cooperative_id', $coop->id)
+        $individualLoans = GoTractIndividualLoan::with('equipment')
+            ->where('application_id', $application->id)
             ->orderByDesc('created_at')
             ->get()
-            ->map(fn ($req) => [
-                'id' => $req->id,
-                'equipment_id' => $req->equipment_id, // ADD THIS LINE
-                'equipment' => $req->equipment->name,
-                'unit' => $req->equipment->unit,
-                'quantity' => $req->quantity,
-                'status' => $req->status,
-                'requestedAt' => optional($req->requested_at)->toIso8601String(),
-            ]);
-    }
+            ->map(fn ($l) => $this->individualLoanPayload($l));
 
-    return response()->json(['data' => [
-        'individualLoans' => $individualLoans,
-        'cooperative' => $cooperative,
-        'cooperativeRequests' => $cooperativeRequests,
-    ]]);
-}
+        $membership = GoTractCooperativeMember::where('application_id', $application->id)
+            ->whereHas('cooperative', fn ($q) => $q->whereIn('status', GoTractCooperative::ACTIVE_STATUSES))
+            ->with('cooperative')
+            ->first();
+
+        $cooperative = null;
+        $cooperativeRequests = [];
+
+        if ($membership) {
+            $coop = $membership->cooperative;
+            $cooperative = $this->cooperativePayload($coop, $application);
+            
+            $cooperativeRequests = GoTractCooperativeRequest::with('equipment')
+                ->where('cooperative_id', $coop->id)
+                ->orderByDesc('created_at')
+                ->get()
+                ->map(fn ($req) => [
+                    'id' => $req->id,
+                    'equipment_id' => $req->equipment_id,
+                    'equipment' => $req->equipment->name,
+                    'unit' => $req->equipment->unit,
+                    'quantity' => $req->quantity,
+                    'status' => $req->status,
+                    'requestedAt' => optional($req->requested_at)->toIso8601String(),
+                ]);
+        }
+
+        return response()->json(['data' => [
+            'individualLoans' => $individualLoans,
+            'cooperative' => $cooperative,
+            'cooperativeRequests' => $cooperativeRequests,
+        ]]);
+    }
 
     /**
      * Request an individual-type equipment item with quantity.
@@ -227,28 +224,27 @@ public function mine(Request $request): JsonResponse
             return response()->json(['message' => 'Participant not found or not accredited.'], 404);
         }
 
-        // Check if user is already in a cooperative
         if ($this->hasActiveCooperative($application->id)) {
             return response()->json(['message' => 'You are already part of an active cooperative.'], 409);
         }
 
         $cooperative = DB::transaction(function () use ($application, $data) {
-    $coop = GoTractCooperative::create([
-        'name'                => $data['name'],
-        'lead_application_id' => $application->id,
-        'lga'                 => $application->lga,
-        'required_size'       => 10,
-        'status'              => 'forming',
-    ]);
+            $coop = GoTractCooperative::create([
+                'name'                => $data['name'],
+                'lead_application_id' => $application->id,
+                'lga'                 => $application->lga,
+                'required_size'       => 10,
+                'status'              => 'forming',
+            ]);
 
-    GoTractCooperativeMember::create([
-        'cooperative_id' => $coop->id,
-        'application_id' => $application->id,
-        'joined_at'      => now(),
-    ]);
+            GoTractCooperativeMember::create([
+                'cooperative_id' => $coop->id,
+                'application_id' => $application->id,
+                'joined_at'      => now(),
+            ]);
 
-    return $coop;
-});
+            return $coop;
+        });
 
         return response()->json([
             'message' => "Cooperative '{$cooperative->name}' created! Share code {$cooperative->code} with your group.",
@@ -326,13 +322,10 @@ public function mine(Request $request): JsonResponse
 
         $cooperative = GoTractCooperative::findOrFail($data['cooperative_id']);
         
-        // Only the cooperative leader can request equipment
         if ($cooperative->lead_application_id !== $application->id) {
             return response()->json(['message' => 'Only the cooperative lead can request equipment.'], 403);
         }
 
-        // REMOVED: The check for status === 'active' - Now can request at ANY time
-        // Only check that the cooperative is not completed/cancelled
         if (! in_array($cooperative->status, ['forming', 'active'])) {
             return response()->json(['message' => 'This cooperative is no longer active.'], 422);
         }
@@ -365,6 +358,85 @@ public function mine(Request $request): JsonResponse
                 'status' => $request->status,
             ],
         ], 201);
+    }
+
+    /**
+     * Update a cooperative request quantity.
+     */
+    public function updateCooperativeRequest(Request $request, GoTractCooperativeRequest $cooperativeRequest): JsonResponse
+    {
+        $data = $request->validate([
+            'phone' => ['required', 'digits:11'],
+            'quantity' => ['required', 'integer', 'min:1'],
+        ]);
+
+        $application = $this->resolve($data['phone']);
+        if (! $application) {
+            return response()->json(['message' => 'Participant not found or not accredited.'], 404);
+        }
+
+        $cooperative = $cooperativeRequest->cooperative;
+        if ($cooperative->lead_application_id !== $application->id) {
+            return response()->json(['message' => 'Only the cooperative lead can update requests.'], 403);
+        }
+
+        if ($cooperativeRequest->status !== 'pending') {
+            return response()->json(['message' => 'Cannot modify this request in its current state.'], 422);
+        }
+
+        $equipment = $cooperativeRequest->equipment;
+        $newQuantity = $data['quantity'];
+        $oldQuantity = $cooperativeRequest->quantity;
+        $additionalNeeded = max(0, $newQuantity - $oldQuantity);
+
+        if ($equipment->available_quantity < $additionalNeeded) {
+            return response()->json([
+                'message' => "Only {$equipment->available_quantity} units available. You currently have {$oldQuantity}.",
+            ], 422);
+        }
+
+        $cooperativeRequest->update(['quantity' => $newQuantity]);
+
+        return response()->json([
+            'message' => "Quantity updated to {$newQuantity} unit(s).",
+            'data' => [
+                'id' => $cooperativeRequest->id,
+                'equipment' => $equipment->name,
+                'unit' => $equipment->unit,
+                'quantity' => $cooperativeRequest->quantity,
+                'status' => $cooperativeRequest->status,
+            ],
+        ]);
+    }
+
+    /**
+     * Cancel a cooperative request.
+     */
+    public function cancelCooperativeRequest(Request $request, GoTractCooperativeRequest $cooperativeRequest): JsonResponse
+    {
+        $data = $request->validate([
+            'phone' => ['required', 'digits:11'],
+        ]);
+
+        $application = $this->resolve($data['phone']);
+        if (! $application) {
+            return response()->json(['message' => 'Participant not found or not accredited.'], 404);
+        }
+
+        $cooperative = $cooperativeRequest->cooperative;
+        if ($cooperative->lead_application_id !== $application->id) {
+            return response()->json(['message' => 'Only the cooperative lead can cancel requests.'], 403);
+        }
+
+        if ($cooperativeRequest->status !== 'pending') {
+            return response()->json(['message' => 'Cannot cancel this request in its current state.'], 422);
+        }
+
+        $cooperativeRequest->update(['status' => 'cancelled']);
+
+        return response()->json([
+            'message' => 'Request cancelled successfully.',
+        ]);
     }
 
     /* ----------------------------- Helpers ------------------------------ */
@@ -436,89 +508,4 @@ public function mine(Request $request): JsonResponse
             ])->values(),
         ];
     }
-
-
-
-    /**
- * Update a cooperative request quantity.
- */
-public function updateCooperativeRequest(Request $request, GoTractCooperativeRequest $cooperativeRequest): JsonResponse
-{
-    $data = $request->validate([
-        'phone' => ['required', 'digits:11'],
-        'quantity' => ['required', 'integer', 'min:1'],
-    ]);
-
-    $application = $this->resolve($data['phone']);
-    if (! $application) {
-        return response()->json(['message' => 'Participant not found or not accredited.'], 404);
-    }
-
-    // Verify the user is the cooperative leader
-    $cooperative = $cooperativeRequest->cooperative;
-    if ($cooperative->lead_application_id !== $application->id) {
-        return response()->json(['message' => 'Only the cooperative lead can update requests.'], 403);
-    }
-
-    // Only allow updating pending requests
-    if ($cooperativeRequest->status !== 'pending') {
-        return response()->json(['message' => 'Cannot modify this request in its current state.'], 422);
-    }
-
-    $equipment = $cooperativeRequest->equipment;
-    $newQuantity = $data['quantity'];
-    $oldQuantity = $cooperativeRequest->quantity;
-    $additionalNeeded = max(0, $newQuantity - $oldQuantity);
-
-    if ($equipment->available_quantity < $additionalNeeded) {
-        return response()->json([
-            'message' => "Only {$equipment->available_quantity} units available. You currently have {$oldQuantity}.",
-        ], 422);
-    }
-
-    $cooperativeRequest->update(['quantity' => $newQuantity]);
-
-    return response()->json([
-        'message' => "Quantity updated to {$newQuantity} unit(s).",
-        'data' => [
-            'id' => $cooperativeRequest->id,
-            'equipment' => $equipment->name,
-            'unit' => $equipment->unit,
-            'quantity' => $cooperativeRequest->quantity,
-            'status' => $cooperativeRequest->status,
-        ],
-    ]);
-}
-
-/**
- * Cancel a cooperative request.
- */
-public function cancelCooperativeRequest(Request $request, GoTractCooperativeRequest $cooperativeRequest): JsonResponse
-{
-    $data = $request->validate([
-        'phone' => ['required', 'digits:11'],
-    ]);
-
-    $application = $this->resolve($data['phone']);
-    if (! $application) {
-        return response()->json(['message' => 'Participant not found or not accredited.'], 404);
-    }
-
-    // Verify the user is the cooperative leader
-    $cooperative = $cooperativeRequest->cooperative;
-    if ($cooperative->lead_application_id !== $application->id) {
-        return response()->json(['message' => 'Only the cooperative lead can cancel requests.'], 403);
-    }
-
-    // Only allow cancelling pending requests
-    if ($cooperativeRequest->status !== 'pending') {
-        return response()->json(['message' => 'Cannot cancel this request in its current state.'], 422);
-    }
-
-    $cooperativeRequest->update(['status' => 'cancelled']);
-
-    return response()->json([
-        'message' => 'Request cancelled successfully.',
-    ]);
-}
 }
