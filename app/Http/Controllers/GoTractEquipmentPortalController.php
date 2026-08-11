@@ -12,6 +12,7 @@ use App\Models\GoTractIndividualLoan;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 
 class GoTractEquipmentPortalController extends Controller
 {
@@ -262,7 +263,7 @@ class GoTractEquipmentPortalController extends Controller
             'string', 
             'max:255',
             // Case-insensitive unique validation
-            Rule::unique('go_tract_cooperatives', 'name')->where(function ($query) {
+            Rule::unique('gotract_cooperatives', 'name')->where(function ($query) {
                 return $query->whereRaw('LOWER(name) = LOWER(?)', [request('name')]);
             })
         ],
