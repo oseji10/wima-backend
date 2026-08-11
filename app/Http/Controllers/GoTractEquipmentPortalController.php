@@ -494,7 +494,7 @@ class GoTractEquipmentPortalController extends Controller
     protected function resolve(string $phone): ?GoTractApplication
     {
         return GoTractApplication::where('phone_number', $phone)
-            ->whereNotNull('accredited_at')
+            // ->whereNotNull('accredited_at')
             ->first();
     }
 
