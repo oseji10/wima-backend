@@ -212,45 +212,94 @@ class GoTractEquipmentPortalController extends Controller
     /**
      * Create a cooperative (not tied to specific equipment).
      */
+    // public function cooperativeCreate(Request $request): JsonResponse
+    // {
+    //     $data = $request->validate([
+    //         'phone' => ['required', 'digits:11'],
+    //         'name'  => ['required', 'string', 'max:255'],
+    //     ]);
+
+    //     $application = $this->resolve($data['phone']);
+    //     if (! $application) {
+    //         return response()->json(['message' => 'Participant not found or not accredited.'], 404);
+    //     }
+
+    //     if ($this->hasActiveCooperative($application->id)) {
+    //         return response()->json(['message' => 'You are already part of an active cooperative.'], 409);
+    //     }
+
+    //     $cooperative = DB::transaction(function () use ($application, $data) {
+    //         $coop = GoTractCooperative::create([
+    //             'name'                => $data['name'],
+    //             'lead_application_id' => $application->id,
+    //             'lga'                 => $application->lga,
+    //             'required_size'       => 10,
+    //             'status'              => 'forming',
+    //         ]);
+
+    //         GoTractCooperativeMember::create([
+    //             'cooperative_id' => $coop->id,
+    //             'application_id' => $application->id,
+    //             'joined_at'      => now(),
+    //         ]);
+
+    //         return $coop;
+    //     });
+
+    //     return response()->json([
+    //         'message' => "Cooperative '{$cooperative->name}' created! Share code {$cooperative->code} with your group.",
+    //         'data'    => $this->cooperativePayload($cooperative, $application),
+    //     ], 201);
+    // }
+
+
     public function cooperativeCreate(Request $request): JsonResponse
-    {
-        $data = $request->validate([
-            'phone' => ['required', 'digits:11'],
-            'name'  => ['required', 'string', 'max:255'],
+{
+    $data = $request->validate([
+        'phone' => ['required', 'digits:11'],
+        'name'  => [
+            'required', 
+            'string', 
+            'max:255',
+            // Case-insensitive unique validation
+            Rule::unique('go_tract_cooperatives', 'name')->where(function ($query) {
+                return $query->whereRaw('LOWER(name) = LOWER(?)', [request('name')]);
+            })
+        ],
+    ]);
+
+    $application = $this->resolve($data['phone']);
+    if (! $application) {
+        return response()->json(['message' => 'Participant not found or not accredited.'], 404);
+    }
+
+    if ($this->hasActiveCooperative($application->id)) {
+        return response()->json(['message' => 'You are already part of an active cooperative.'], 409);
+    }
+
+    $cooperative = DB::transaction(function () use ($application, $data) {
+        $coop = GoTractCooperative::create([
+            'name'                => $data['name'],
+            'lead_application_id' => $application->id,
+            'lga'                 => $application->lga,
+            'required_size'       => 10,
+            'status'              => 'forming',
         ]);
 
-        $application = $this->resolve($data['phone']);
-        if (! $application) {
-            return response()->json(['message' => 'Participant not found or not accredited.'], 404);
-        }
+        GoTractCooperativeMember::create([
+            'cooperative_id' => $coop->id,
+            'application_id' => $application->id,
+            'joined_at'      => now(),
+        ]);
 
-        if ($this->hasActiveCooperative($application->id)) {
-            return response()->json(['message' => 'You are already part of an active cooperative.'], 409);
-        }
+        return $coop;
+    });
 
-        $cooperative = DB::transaction(function () use ($application, $data) {
-            $coop = GoTractCooperative::create([
-                'name'                => $data['name'],
-                'lead_application_id' => $application->id,
-                'lga'                 => $application->lga,
-                'required_size'       => 10,
-                'status'              => 'forming',
-            ]);
-
-            GoTractCooperativeMember::create([
-                'cooperative_id' => $coop->id,
-                'application_id' => $application->id,
-                'joined_at'      => now(),
-            ]);
-
-            return $coop;
-        });
-
-        return response()->json([
-            'message' => "Cooperative '{$cooperative->name}' created! Share code {$cooperative->code} with your group.",
-            'data'    => $this->cooperativePayload($cooperative, $application),
-        ], 201);
-    }
+    return response()->json([
+        'message' => "Cooperative '{$cooperative->name}' created! Share code {$cooperative->code} with your group.",
+        'data'    => $this->cooperativePayload($cooperative, $application),
+    ], 201);
+}
 
     /**
      * Join a cooperative using its share code.
