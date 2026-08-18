@@ -98,5 +98,30 @@ class User extends Authenticatable implements JWTSubject
             return $this->hasOne(GotractPartners::class, 'userId', 'id');
         }
 
+         public function userRole()
+    {
+        return $this->belongsTo(Role::class, 'role', 'roleId');
+    }
+
+    public function stateCoordinator()
+    {
+        return $this->hasOne(StateCoordinators::class, 'userId', 'userId');
+    }
+
+    public function communityLead()
+    {
+        return $this->hasOne(CommunityLead::class, 'userId', 'userId');
+    }
+
+    // public function msp()
+    // {
+    //     return $this->hasOne(MSP::class, 'userId', 'userId');
+    // }
+
+    public function gotractPartner()
+    {
+        return $this->hasOne(GoTractPartner::class, 'userId', 'userId');
+    }
+
 
 }

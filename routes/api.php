@@ -45,6 +45,8 @@ use App\Http\Controllers\GoTractBadgeController;
 use App\Http\Controllers\RequisitionController;
 use App\Http\Controllers\VendorController;
 
+use App\Http\Controllers\ProfileController;
+
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -177,6 +179,9 @@ Route::prefix('gotract/equipment')->group(function () {
             ]);
         });
 
+        Route::get('/user/profile', [ProfileController::class, 'getProfile']);
+    Route::put('/user/profile', [ProfileController::class, 'updateProfile']);
+    Route::put('/user/password', [ProfileController::class, 'changePassword']);
 
         Route::prefix('gotract/equipment-admin')->group(function () {
     Route::get('stats', [GoTractEquipmentAdminController::class, 'stats']);
